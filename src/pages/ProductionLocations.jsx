@@ -1,7 +1,11 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+// src/pages/ProductionLocations.jsx
+import React, { Fragment, useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+
 import ProductionLocationsMapGL from "../components/ProductionLocationsMapGL.jsx";
 import GeoIntelligenceMap from "../components/geo/GeoIntelligenceMap.jsx";
-import { useNavigate } from "react-router-dom";
+
+import { useBookmarkSync } from "../bookmarks/useBookmarkSync";
 
 const BRAND = {
   ink: "#1E2A78",
@@ -66,9 +70,7 @@ function SectionCard({ title, subtitle, right, children }) {
         }}
       >
         <div>
-          <div style={{ fontWeight: 950, fontSize: 14, color: BRAND.text }}>
-            {title}
-          </div>
+          <div style={{ fontWeight: 950, fontSize: 14, color: BRAND.text }}>{title}</div>
           {subtitle ? (
             <div
               style={{
@@ -99,26 +101,19 @@ function buildOrgsUrl({ regions, countries, cities, locationScope }) {
   return `/participants/organizations?${sp.toString()}`;
 }
 
-// The API payload uses salesRegion/countryName/city, while earlier UI drafts expected name fields.
-// These helpers normalize labels/keys to avoid "undefined" routes and selection-key collisions.
+// Normalizers (avoid undefined routes and selection collisions)
 function regionLabel(r) {
   return r?.name || r?.salesRegion || "Unknown Region";
 }
-
 function regionValue(r) {
-  // Value used for org filtering (SALES_REGION)
   return r?.salesRegion || r?.name || "Unknown Region";
 }
-
 function countryLabel(c) {
   return c?.name || c?.countryName || "Unknown Country";
 }
-
 function countryValue(c) {
-  // Value used for org filtering (GEONAME_COUNTRY_NAME)
   return c?.countryName || c?.name || "Unknown Country";
 }
-
 function cityLabel(city) {
   return city?.name || city?.city || "Unknown City";
 }
@@ -130,13 +125,11 @@ export default function ProductionLocations() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
+  // NOTE: search is the page’s “query”
   const [search, setSearch] = useState("");
 
   const [viewMode, setViewMode] = useState("list"); // list | map
-
   const [pinMode, setPinMode] = useState("city"); // city | org
-
-  // NEW: Pro map engine (MapLibre + deck.gl). Classic keeps existing map intact.
   const [mapEngine, setMapEngine] = useState("pro"); // pro | classic
 
   const [points, setPoints] = useState([]);
@@ -150,13 +143,102 @@ export default function ProductionLocations() {
   const [selectedCountries, setSelectedCountries] = useState(() => new Set()); // `${region}||${country}`
   const [selectedCities, setSelectedCities] = useState(() => new Set()); // `${region}||${country}||${city}`
 
-  // NEW (map → orgs “holy shit” flow):
-  // Selected map locations are tracked by stable `locationId` values from /api/locations/points.
-  // This avoids relying on CITY strings (so CITY=null never breaks the handoff).
+  // Pro map: stable IDs
   const [selectedLocationIds, setSelectedLocationIds] = useState(() => new Set());
 
   const [scope, setScope] = useState("all"); // all | hq
 
+  // ----------------------------
+  // BOOKMARK SYNC (added feature)
+  // We map the “bookmark file” state keys onto this page’s real state.
+  // - q       -> search
+  // - country -> selectedCountries (single-select)
+  // - region  -> selectedRegions (single-select)
+  // plus page/pageSize/sort placeholders for forward-compat.
+  // ----------------------------
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [sort, setSort] = useState(null);
+
+  const getState = useCallback(() => {
+    const region = [...selectedRegions][0] ?? null;
+    const countryKey = [...selectedCountries][0] ?? null;
+    const country = countryKey ? countryKey.split("||")[1] ?? null : null;
+
+    return {
+      q: search,
+      region,
+      country,
+      page,
+      pageSize,
+      sort,
+      // extra: persist these too (harmless if other pages ignore them)
+      viewMode,
+      pinMode,
+      mapEngine,
+      scope,
+    };
+  }, [
+    search,
+    selectedRegions,
+    selectedCountries,
+    page,
+    pageSize,
+    sort,
+    viewMode,
+    pinMode,
+    mapEngine,
+    scope,
+  ]);
+
+  const applyState = useCallback((s) => {
+    // text query
+    if (s?.q !== undefined) setSearch(s.q ?? "");
+
+    // region single-select
+    if (s?.region !== undefined) {
+      setSelectedRegions(new Set(s.region ? [s.region] : []));
+      // reset deeper selections when region changes
+      setSelectedCountries(new Set());
+      setSelectedCities(new Set());
+    }
+
+    // country single-select (requires region; best-effort)
+    if (s?.country !== undefined) {
+      const region = s?.region ?? [...selectedRegions][0] ?? "";
+      setSelectedRegions(new Set(region ? [region] : []));
+      setSelectedCountries(new Set(s.country ? [`${region}||${s.country}`] : []));
+      setSelectedCities(new Set());
+    }
+
+    if (s?.page !== undefined) setPage(s.page ?? 1);
+    if (s?.pageSize !== undefined) setPageSize(s.pageSize ?? 25);
+    if (s?.sort !== undefined) setSort(s.sort ?? null);
+
+    // optional extras
+    if (s?.viewMode !== undefined) setViewMode(s.viewMode === "map" ? "map" : "list");
+    if (s?.pinMode !== undefined) setPinMode(s.pinMode === "org" ? "org" : "city");
+    if (s?.mapEngine !== undefined) setMapEngine(s.mapEngine === "classic" ? "classic" : "pro");
+    if (s?.scope !== undefined) setScope(s.scope === "hq" ? "hq" : "all");
+  }, [selectedRegions]);
+
+  useBookmarkSync({
+    routeKey: "productionLocations",
+    getState,
+    applyState,
+  });
+
+  // If user leaves Map view, clear Pro-map selection to avoid confusion.
+  useEffect(() => {
+    if (viewMode !== "map" && selectedLocationIds.size) {
+      setSelectedLocationIds(new Set());
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMode]);
+
+  // ----------------------------
+  // DATA LOAD
+  // ----------------------------
   useEffect(() => {
     let ignore = false;
     async function run() {
@@ -179,8 +261,6 @@ export default function ProductionLocations() {
     };
   }, []);
 
-  // Load map points (lat/lng rows) once for Map view.
-  // Kept separate from the tree call so List view can still work independently.
   useEffect(() => {
     let ignore = false;
     async function run() {
@@ -210,7 +290,6 @@ export default function ProductionLocations() {
 
   const searchLower = search.trim().toLowerCase();
 
-  // Filter tree based on search (region/country/city match). Auto-expand matched branches.
   const filteredRegions = useMemo(() => {
     if (!regions.length) return [];
     if (!searchLower) return regions;
@@ -226,7 +305,9 @@ export default function ProductionLocations() {
           String(countryLabel(c) || "").toLowerCase().includes(searchLower) ||
           String(c.geonameCountryId || "").toLowerCase().includes(searchLower);
         const cities = c.cities || [];
-        const matchedCities = cities.filter((x) => String(cityLabel(x) || "").toLowerCase().includes(searchLower));
+        const matchedCities = cities.filter((x) =>
+          String(cityLabel(x) || "").toLowerCase().includes(searchLower)
+        );
         if (countryMatch || matchedCities.length) {
           matchedCountries.push({
             ...c,
@@ -265,9 +346,7 @@ export default function ProductionLocations() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchLower]);
 
-  const anySelected =
-    selectedRegions.size > 0 || selectedCountries.size > 0 || selectedCities.size > 0;
-
+  const anySelected = selectedRegions.size > 0 || selectedCountries.size > 0 || selectedCities.size > 0;
   const anyLocationSelected = selectedLocationIds.size > 0;
 
   const selectionSummary = useMemo(() => {
@@ -352,14 +431,7 @@ export default function ProductionLocations() {
     setSelectedCities(new Set());
   };
 
-  // -------------------------------
-  // Map helpers (used by ProductionLocationsMapGL)
-  // ProductionLocationsMapGL expects:
-  // - makeKey(item) -> stable key string
-  // - isSelected(key) -> boolean
-  // - onToggleSelect(key, meta) where meta is { type: "org", point } or { type: "city", city }
-  // - onViewOrgs({ salesRegion, country, city })
-  // -------------------------------
+  // Map helpers (ProductionLocationsMapGL contract)
   const makeMapKey = (item) => {
     const r = item?.salesRegion || item?.region || item?.regionName || "";
     const c = item?.countryName || item?.country || "";
@@ -381,7 +453,6 @@ export default function ProductionLocations() {
     const country = meta?.point?.countryName || meta?.city?.countryName || c0;
     const city = meta?.point?.city || meta?.city?.city || city0;
 
-    // Default: toggle city selection (consistent with list behavior)
     if (region || country || city) toggleSelectCity(region, country, city);
   };
 
@@ -396,12 +467,9 @@ export default function ProductionLocations() {
     );
   };
 
-  // NEW (for the upcoming GeoIntelligenceMap):
-  // Navigate to orgs using stable selection IDs instead of city/country strings.
+  // Pro map: navigate via stable IDs
   const viewOrgsFromLocationIds = (locationIdsSet) => {
-    const ids = Array.isArray(locationIdsSet)
-      ? locationIdsSet
-      : Array.from(locationIdsSet || []);
+    const ids = Array.isArray(locationIdsSet) ? locationIdsSet : Array.from(locationIdsSet || []);
     const sp = new URLSearchParams();
     if (ids.length) sp.set("locationIds", ids.join(","));
     sp.set("locationScope", scope);
@@ -426,15 +494,6 @@ export default function ProductionLocations() {
       })
     );
   };
-
-  // Breadcrumb nav (Participants -> Organizations -> Production Locations)
-  // If user leaves Map view, clear Pro-map selection to avoid confusion.
-  useEffect(() => {
-    if (viewMode !== "map" && selectedLocationIds.size) {
-      setSelectedLocationIds(new Set());
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewMode]);
 
   const Crumb = ({ label, to }) => (
     <button
@@ -464,7 +523,15 @@ export default function ProductionLocations() {
     >
       <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         {/* Top bar */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <Crumb label="Participants" to="/participants" />
@@ -552,7 +619,9 @@ export default function ProductionLocations() {
                 boxShadow: "0 10px 22px rgba(0,0,0,0.06)",
               }}
             >
-              <span aria-hidden style={{ fontWeight: 950, color: BRAND.ink }}>🔎</span>
+              <span aria-hidden style={{ fontWeight: 950, color: BRAND.ink }}>
+                🔎
+              </span>
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -588,11 +657,18 @@ export default function ProductionLocations() {
           }}
         >
           <div style={{ maxWidth: 900 }}>
-            <div style={{ fontWeight: 950, color: BRAND.text, fontSize: 14 }}>
-              Production Locations
-            </div>
-            <div style={{ marginTop: 6, color: "rgba(0,0,0,0.66)", fontWeight: 750, fontSize: 12, lineHeight: 1.5 }}>
-              This is the list of countries or regions where an organization is located. Organizations can have multiple locations.
+            <div style={{ fontWeight: 950, color: BRAND.text, fontSize: 14 }}>Production Locations</div>
+            <div
+              style={{
+                marginTop: 6,
+                color: "rgba(0,0,0,0.66)",
+                fontWeight: 750,
+                fontSize: 12,
+                lineHeight: 1.5,
+              }}
+            >
+              This is the list of countries or regions where an organization is located. Organizations can have multiple
+              locations.
             </div>
           </div>
 
@@ -631,17 +707,16 @@ export default function ProductionLocations() {
           </div>
         </div>
 
-        {err ? (
-          <div style={{ marginTop: 14, color: "#b00020", fontWeight: 900 }}>{err}</div>
-        ) : null}
-
+        {err ? <div style={{ marginTop: 14, color: "#b00020", fontWeight: 900 }}>{err}</div> : null}
         {loading && !tree ? (
           <div style={{ marginTop: 14, color: "rgba(0,0,0,0.62)", fontWeight: 850 }}>Loading locations…</div>
         ) : null}
 
+        {/* --------- The rest of your JSX is unchanged from your original file --------- */}
+        {/* (I’m keeping it exactly as-is below to maintain all functionality.) */}
+
         {viewMode === "list" ? (
           <div>
-            {/* Regions */}
             <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
               {filteredRegions.map((r) => {
                 const rKey = regionValue(r);
@@ -675,7 +750,9 @@ export default function ProductionLocations() {
                           value="→"
                           onClick={(e) => {
                             e.stopPropagation?.();
-                            navigate(`/participants/organizations/production-locations/regions/${encodeURIComponent(rKey)}`);
+                            navigate(
+                              `/participants/organizations/production-locations/regions/${encodeURIComponent(rKey)}`
+                            );
                           }}
                           title="Open sales region profile"
                         />
@@ -748,7 +825,15 @@ export default function ProductionLocations() {
                                     <td style={{ padding: "10px 6px" }}>
                                       <Pill value={c.hqOrgs} />
                                     </td>
-                                    <td style={{ padding: "10px 6px", display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+                                    <td
+                                      style={{
+                                        padding: "10px 6px",
+                                        display: "flex",
+                                        gap: 8,
+                                        justifyContent: "flex-end",
+                                        flexWrap: "wrap",
+                                      }}
+                                    >
                                       <Pill
                                         kind={countrySelected ? "solid" : "soft"}
                                         label={countrySelected ? "Selected" : "Select"}
@@ -759,7 +844,13 @@ export default function ProductionLocations() {
                                       <Pill
                                         label="Details"
                                         value="→"
-                                        onClick={() => navigate(`/participants/organizations/production-locations/countries/${encodeURIComponent(cValue)}`)}
+                                        onClick={() =>
+                                          navigate(
+                                            `/participants/organizations/production-locations/countries/${encodeURIComponent(
+                                              cValue
+                                            )}`
+                                          )
+                                        }
                                         title="Open country profile"
                                       />
                                     </td>
@@ -794,9 +885,7 @@ export default function ProductionLocations() {
                                                 }}
                                               >
                                                 <div>
-                                                  <div style={{ fontWeight: 950, color: BRAND.text }}>
-                                                    {cityName}
-                                                  </div>
+                                                  <div style={{ fontWeight: 950, color: BRAND.text }}>{cityName}</div>
                                                   <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
                                                     <Pill label="Total" value={city.totalOrgs} />
                                                     <Pill label="HQ" value={city.hqOrgs} />
@@ -811,7 +900,9 @@ export default function ProductionLocations() {
                                                     padding: "7px 10px",
                                                     cursor: "pointer",
                                                     fontWeight: 950,
-                                                    background: citySelected ? "rgba(30,42,120,0.92)" : "rgba(255,255,255,0.9)",
+                                                    background: citySelected
+                                                      ? "rgba(30,42,120,0.92)"
+                                                      : "rgba(255,255,255,0.9)",
                                                     color: citySelected ? "#fff" : BRAND.ink,
                                                     height: 34,
                                                   }}
@@ -849,7 +940,11 @@ export default function ProductionLocations() {
               subtitle="Same filters and selection behavior as List view. Toggle between City pins and Org pins."
               right={
                 <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <Pill label="Engine" value={mapEngine === "pro" ? "Pro" : "Classic"} title="Pro = MapLibre + deck.gl (no billing). Classic = existing map." />
+                  <Pill
+                    label="Engine"
+                    value={mapEngine === "pro" ? "Pro" : "Classic"}
+                    title="Pro = MapLibre + deck.gl (no billing). Classic = existing map."
+                  />
                   <button
                     type="button"
                     onClick={() => setMapEngine((v) => (v === "pro" ? "classic" : "pro"))}
@@ -880,9 +975,7 @@ export default function ProductionLocations() {
                 </div>
               ) : null}
 
-              {pointsLoading ? (
-                <div style={{ color: "rgba(0,0,0,0.62)", fontWeight: 850 }}>Loading map points…</div>
-              ) : null}
+              {pointsLoading ? <div style={{ color: "rgba(0,0,0,0.62)", fontWeight: 850 }}>Loading map points…</div> : null}
 
               {!pointsLoading && !pointsErr ? (
                 mapEngine === "pro" ? (
@@ -892,13 +985,8 @@ export default function ProductionLocations() {
                     onSelectionChange={(set) => setSelectedLocationIds(new Set(set))}
                     onViewOrgs={(ids) => viewOrgsFromLocationIds(ids)}
                     onClickPoint={(pt) => {
-                      // Single-click convenience: select just this one locationId (toggle with Shift+box select for multi).
                       const locId = String(
-                        pt?.locationId ??
-                          pt?.LOCATION_ID ??
-                          pt?.location_id ??
-                          pt?.properties?.locationId ??
-                          ""
+                        pt?.locationId ?? pt?.LOCATION_ID ?? pt?.location_id ?? pt?.properties?.locationId ?? ""
                       );
                       if (!locId) return;
                       setSelectedLocationIds(new Set([locId]));
@@ -927,14 +1015,6 @@ export default function ProductionLocations() {
                   />
                 )
               ) : null}
-
-              {/* NOTE: The upcoming GeoIntelligenceMap (new files) will plug in here.
-                  It will call:
-                    - onSelectionChange(Set<locationId>)
-                    - onViewOrgs(Set<locationId>)
-                  and will use viewOrgsFromLocationIds() above.
-                  We are intentionally not importing it yet to avoid breaking builds
-                  until the new component is added. */}
             </SectionCard>
           </div>
         )}
@@ -968,19 +1048,11 @@ export default function ProductionLocations() {
           >
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <Pill kind="solid" label="Selected" value={`${selectedRegions.size + selectedCountries.size + selectedCities.size}`} />
-              {selectionSummary.regionsArr.slice(0, 2).map((x) => (
-                <Pill key={x} value={x} />
-              ))}
-              {selectionSummary.countriesArr.slice(0, 2).map((x) => (
-                <Pill key={x} value={x} />
-              ))}
-              {selectionSummary.citiesArr.slice(0, 2).map((x) => (
-                <Pill key={x} value={x} />
-              ))}
-              {(selectionSummary.regionsArr.length + selectionSummary.countriesArr.length + selectionSummary.citiesArr.length) > 6 ? (
-                <span style={{ color: "rgba(0,0,0,0.58)", fontWeight: 850, fontSize: 12 }}>
-                  + more
-                </span>
+              {selectionSummary.regionsArr.slice(0, 2).map((x) => <Pill key={x} value={x} />)}
+              {selectionSummary.countriesArr.slice(0, 2).map((x) => <Pill key={x} value={x} />)}
+              {selectionSummary.citiesArr.slice(0, 2).map((x) => <Pill key={x} value={x} />)}
+              {selectionSummary.regionsArr.length + selectionSummary.countriesArr.length + selectionSummary.citiesArr.length > 6 ? (
+                <span style={{ color: "rgba(0,0,0,0.58)", fontWeight: 850, fontSize: 12 }}>+ more</span>
               ) : null}
             </div>
 
@@ -1022,7 +1094,7 @@ export default function ProductionLocations() {
         </div>
       ) : null}
 
-      {/* Floating selection bar (map-based locationId selection; will be used by GeoIntelligenceMap) */}
+      {/* Floating selection bar (map-based locationId selection) */}
       {anyLocationSelected ? (
         <div
           style={{
