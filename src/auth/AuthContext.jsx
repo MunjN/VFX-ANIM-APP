@@ -69,12 +69,41 @@ function useInactivityLogout({ enabled, onTimeout }) {
   }, [enabled]);
 }
 
+function parseAllowedGroups() {
+  const raw = (import.meta.env.VITE_ALLOWED_GROUPS || "").trim();
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function getGroupsFromSession(session) {
+  try {
+    // amazon-cognito-identity-js exposes payload on the token object
+    const payload = session?.getIdToken?.()?.payload || {};
+    const groups = payload["cognito:groups"];
+    if (Array.isArray(groups)) return groups;
+    return [];
+  } catch {
+    return [];
+  }
+}
+
 export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState(null);
   const [status, setStatus] = useState("");
 
+  const allowedGroups = useMemo(() => parseAllowedGroups(), []);
+  const userGroups = useMemo(() => (session ? getGroupsFromSession(session) : []), [session]);
+
   const isAuthenticated = !!session;
+  const isAuthorized = useMemo(() => {
+    // If no allow-list provided, treat as open access.
+    if (!allowedGroups.length) return true;
+    return userGroups.some((g) => allowedGroups.includes(g));
+  }, [allowedGroups, userGroups]);
 
   const refreshFromCognito = async () => {
     try {
@@ -121,7 +150,6 @@ export function AuthProvider({ children }) {
     setStatus("");
     const attrs = [];
     if (fullName) {
-      // Standard attribute supported in many user pools
       attrs.push(new CognitoUserAttribute({ Name: "name", Value: fullName }));
     }
     await cognitoSignUp(email, password, attrs);
@@ -146,7 +174,7 @@ export function AuthProvider({ children }) {
     return true;
   };
 
-  // Auto logout after inactivity
+  // Auto logout after inactivity (only if signed in)
   useInactivityLogout({
     enabled: isAuthenticated,
     onTimeout: () => logout({ redirect: true }),
@@ -156,7 +184,11 @@ export function AuthProvider({ children }) {
     () => ({
       isLoading,
       isAuthenticated,
+      isAuthorized,
+
       session,
+      userGroups,
+      allowedGroups,
 
       // UI helpers
       status,
@@ -171,7 +203,15 @@ export function AuthProvider({ children }) {
       logout,
       refreshFromCognito,
     }),
-    [isLoading, isAuthenticated, session, status]
+    [
+      isLoading,
+      isAuthenticated,
+      isAuthorized,
+      session,
+      userGroups,
+      allowedGroups,
+      status,
+    ]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
