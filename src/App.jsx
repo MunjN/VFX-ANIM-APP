@@ -1,5 +1,7 @@
-import React from "react";
-import { HashRouter, Routes, Route, Outlet } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
+
+import ProtectedRoute from "./auth/ProtectedRoute.jsx";
+import AuthPage from "./pages/Auth.jsx";
 
 import HomeRelationships from "./pages/HomeRelationships";
 import ParticipantsHub from "./pages/ParticipantsHub";
@@ -16,86 +18,150 @@ import CountryDetails from "./pages/CountryDetails";
 import Infrastructure from "./pages/Infrastructure";
 import InfrastructureDetails from "./pages/InfrastructureDetails";
 
-import AuthPage from "./pages/Auth.jsx";
-import ProtectedRoute from "./auth/ProtectedRoute.jsx";
-import { useAuth } from "./auth/AuthContext.jsx";
-
-import BookmarksModal from "./bookmarks/BookmarksModal.jsx";
-
-const BRAND_PURPLE = "#1d186d";
-
-function AppShell() {
-  const { logout } = useAuth();
-  const [isBookmarksOpen, setIsBookmarksOpen] = React.useState(false);
-
-  return (
-    <div className="min-h-screen bg-white">
-      <div
-        className="w-full flex items-center justify-between px-6 py-4 text-white sticky top-0 z-50"
-        style={{ backgroundColor: BRAND_PURPLE }}
-      >
-        <a href="https://me-dmz.com" target="_blank" rel="noreferrer">
-          <div className="text-xl font-bold tracking-wide">ME-DMZ</div>
-        </a>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsBookmarksOpen(true)}
-            className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white text-white"
-            style={{ backgroundColor: "transparent" }}
-          >
-            Bookmarks
-          </button>
-
-          <button
-            onClick={() => logout({ redirect: true })}
-            className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white text-white"
-            style={{ backgroundColor: "transparent" }}
-          >
-            Sign out
-          </button>
-        </div>
-      </div>
-
-      <BookmarksModal isOpen={isBookmarksOpen} onClose={() => setIsBookmarksOpen(false)} />
-
-      <div className="min-h-[calc(100vh-64px)]">
-        <Outlet />
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   return (
     <HashRouter>
       <Routes>
+        {/* Public */}
         <Route path="/auth" element={<AuthPage />} />
 
+        {/* Protected */}
         <Route
+          path="/"
           element={
             <ProtectedRoute>
-              <AppShell />
+              <HomeRelationships />
             </ProtectedRoute>
           }
-        >
-          <Route path="/" element={<OrganizationsSearch />} />
-
-          <Route path="/hub" element={<ParticipantsHub />} />
-          <Route path="/home_relationships" element={<HomeRelationships />} />
-          <Route path="/organizations" element={<OrganizationsSearch />} />
-          <Route path="/organizations/:id" element={<OrganizationProfile />} />
-          <Route path="/organizations/:id/schema" element={<OrganizationSchema />} />
-
-          <Route path="/functional_types" element={<FunctionalTypes />} />
-          <Route path="/content_types" element={<ContentTypes />} />
-          <Route path="/services" element={<Services />} />
-          <Route path="/production_locations" element={<ProductionLocations />} />
-          <Route path="/sales_regions/:region" element={<SalesRegionDetails />} />
-          <Route path="/countries/:country" element={<CountryDetails />} />
-          <Route path="/infrastructure" element={<Infrastructure />} />
-          <Route path="/infrastructure/:name" element={<InfrastructureDetails />} />
-        </Route>
+        />
+        <Route
+          path="/participants"
+          element={
+            <ProtectedRoute>
+              <ParticipantsHub />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participants/organizations"
+          element={
+            <ProtectedRoute>
+              <OrganizationsSearch />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participants/organizations/functional-types"
+          element={
+            <ProtectedRoute>
+              <FunctionalTypes />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participants/organizations/content-types"
+          element={
+            <ProtectedRoute>
+              <ContentTypes />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participants/organizations/services"
+          element={
+            <ProtectedRoute>
+              <Services />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participants/organizations/production-locations"
+          element={
+            <ProtectedRoute>
+              <ProductionLocations />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participants/organizations/production-locations/regions/:region"
+          element={
+            <ProtectedRoute>
+              <SalesRegionDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participants/organizations/production-locations/countries/:country"
+          element={
+            <ProtectedRoute>
+              <CountryDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participants/organizations/infrastructure"
+          element={
+            <ProtectedRoute>
+              <Infrastructure />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participants/organizations/infrastructure/:infraName"
+          element={
+            <ProtectedRoute>
+              <InfrastructureDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participants/organizations/schema"
+          element={
+            <ProtectedRoute>
+              <OrganizationSchema />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participants/organizations/:orgId"
+          element={
+            <ProtectedRoute>
+              <OrganizationProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/participants/people"
+          element={
+            <ProtectedRoute>
+              <div style={{ padding: 40 }}>People (coming soon)</div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tasks"
+          element={
+            <ProtectedRoute>
+              <div style={{ padding: 40 }}>Tasks (coming soon)</div>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/infrastructure"
+          element={
+            <ProtectedRoute>
+              <Infrastructure />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/creative-works"
+          element={
+            <ProtectedRoute>
+              <div style={{ padding: 40 }}>Creative Works (coming soon)</div>
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </HashRouter>
   );
