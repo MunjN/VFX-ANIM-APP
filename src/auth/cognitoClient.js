@@ -1,6 +1,7 @@
 // src/auth/cognitoClient.js
-// Lightweight Cognito helper using amazon-cognito-identity-js
-// Matches the pattern from your AWS dashboard side project.
+// Cognito helper using amazon-cognito-identity-js
+// IMPORTANT: Uses sessionStorage so login persists across refresh,
+// but is cleared when the tab/window is closed.
 
 import {
   CognitoUserPool,
@@ -8,9 +9,21 @@ import {
   AuthenticationDetails,
 } from "amazon-cognito-identity-js";
 
+function makeSessionStorage() {
+  // amazon-cognito-identity-js expects a Storage-like interface.
+  // sessionStorage already implements this, but we wrap to be explicit.
+  return {
+    setItem: (key, value) => window.sessionStorage.setItem(key, value),
+    getItem: (key) => window.sessionStorage.getItem(key),
+    removeItem: (key) => window.sessionStorage.removeItem(key),
+    clear: () => window.sessionStorage.clear(),
+  };
+}
+
 const poolData = {
   UserPoolId: import.meta.env.VITE_COGNITO_USER_POOL_ID,
   ClientId: import.meta.env.VITE_COGNITO_CLIENT_ID,
+  Storage: makeSessionStorage(),
 };
 
 if (!poolData.UserPoolId || !poolData.ClientId) {
@@ -20,7 +33,7 @@ if (!poolData.UserPoolId || !poolData.ClientId) {
 export const userPool = new CognitoUserPool(poolData);
 
 function makeUser(username) {
-  return new CognitoUser({ Username: username, Pool: userPool });
+  return new CognitoUser({ Username: username, Pool: userPool, Storage: poolData.Storage });
 }
 
 export function signIn(username, password) {
