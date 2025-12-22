@@ -1,111 +1,103 @@
 // src/bookmarks/bookmarkCodec.js
-// URL-only "bookmark" codec.
-// - Encodes an arbitrary view-state object into a compact, URL-safe string.
-// - Decodes it back (with versioning + basic validation).
-//
-// We intentionally do NOT depend on external compression libs to keep installs simple.
+// Option A bookmarks: one URL param `b=` that contains { v, routeKey, state, ts }.
+// - URL-safe
+// - Versioned
+// - Normalized via bookmarkRegistry (defaults + sanitize)
+// - HashRouter-friendly (works inside location.hash)
 
-const VERSION = 1;
+import { BOOKMARK_VERSION, normalizeState } from "./bookmarkRegistry";
 
-/** Base64URL encode/decode for UTF-8 */
-function base64UrlEncode(bytes) {
-  let binary = "";
-  const len = bytes.length;
-  for (let i = 0; i < len; i++) binary += String.fromCharCode(bytes[i]);
-  const b64 = btoa(binary);
-  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+function toUrlSafeBase64(str) {
+  // Base64 -> URL safe (no +, /, =)
+  const b64 = btoa(unescape(encodeURIComponent(str)));
+  return b64.replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 }
 
-function base64UrlDecodeToBytes(b64url) {
-  const b64 = b64url.replace(/-/g, "+").replace(/_/g, "/");
-  const pad = b64.length % 4 === 0 ? "" : "=".repeat(4 - (b64.length % 4));
-  const binary = atob(b64 + pad);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
+function fromUrlSafeBase64(b64url) {
+  // Restore padding
+  let b64 = b64url.replaceAll("-", "+").replaceAll("_", "/");
+  const pad = b64.length % 4;
+  if (pad === 2) b64 += "==";
+  else if (pad === 3) b64 += "=";
+  else if (pad !== 0) {
+    // invalid length
+    throw new Error("Invalid base64url length");
+  }
+  const str = decodeURIComponent(escape(atob(b64)));
+  return str;
 }
 
-function encodeJson(obj) {
-  const json = JSON.stringify(obj);
-  const bytes = new TextEncoder().encode(json);
-  return base64UrlEncode(bytes);
-}
-
-function decodeJson(encoded) {
-  const bytes = base64UrlDecodeToBytes(encoded);
-  const json = new TextDecoder().decode(bytes);
-  return JSON.parse(json);
-}
-
-/**
- * Encodes a view state object.
- * @param {object} viewState - Any JSON-serializable object describing the view.
- * @returns {string} URL-safe string
- */
-export function encodeBookmark(viewState) {
+export function encodeBookmark({ routeKey, state }) {
   const payload = {
-    v: VERSION,
-    t: Date.now(),
-    s: viewState ?? {},
+    v: BOOKMARK_VERSION,
+    routeKey,
+    state: state || {},
+    ts: Date.now(),
   };
-  return encodeJson(payload);
+  const json = JSON.stringify(payload);
+  return toUrlSafeBase64(json);
 }
 
-/**
- * Decodes a previously-encoded bookmark string.
- * @param {string} encoded
- * @returns {{version:number, timestamp:number, state:object} | null}
- */
 export function decodeBookmark(encoded) {
   if (!encoded || typeof encoded !== "string") return null;
 
   try {
-    const payload = decodeJson(encoded);
+    const json = fromUrlSafeBase64(encoded);
+    const payload = JSON.parse(json);
+
     if (!payload || typeof payload !== "object") return null;
-
-    const v = payload.v;
-    if (typeof v !== "number") return null;
-
-    // Forward-compat: if we bump versions, we can migrate here.
-    if (v !== VERSION) {
-      // For now, accept only current version.
+    if (payload.v !== BOOKMARK_VERSION) {
+      // Future: migrate older versions here if needed.
       return null;
     }
 
+    const routeKey = typeof payload.routeKey === "string" ? payload.routeKey : null;
+    const state = normalizeState(routeKey, payload.state);
+
     return {
-      version: v,
-      timestamp: typeof payload.t === "number" ? payload.t : 0,
-      state: payload.s && typeof payload.s === "object" ? payload.s : {},
+      ...payload,
+      routeKey,
+      state,
     };
   } catch {
     return null;
   }
 }
 
-/**
- * Convenience helpers for using the hash URL query param: `b=<encoded>`
- * Works with HashRouter URLs like: /#/organizations?b=....
- */
-
-export function getBookmarkParamFromLocation() {
-  // HashRouter keeps query in location.search when using react-router.
-  // But if you want a raw read without router, parse window.location.hash too.
-  const search = window.location.search || "";
-  const params = new URLSearchParams(search);
-  return params.get("b");
+function getHashQueryString() {
+  // With HashRouter, query params live after the route in the hash:
+  // location.hash = "#/path?b=...."
+  const hash = window.location.hash || "";
+  const qIndex = hash.indexOf("?");
+  return qIndex >= 0 ? hash.slice(qIndex) : "";
 }
 
-export function setBookmarkParamInUrl(encoded, { replace = true } = {}) {
-  const url = new URL(window.location.href);
-  const params = new URLSearchParams(url.search);
-  if (encoded) params.set("b", encoded);
-  else params.delete("b");
-  url.search = params.toString();
-
-  if (replace) window.history.replaceState({}, "", url.toString());
-  else window.history.pushState({}, "", url.toString());
+function setHashQueryString(newQueryString) {
+  const hash = window.location.hash || "#/";
+  const qIndex = hash.indexOf("?");
+  const base = qIndex >= 0 ? hash.slice(0, qIndex) : hash;
+  window.location.hash = `${base}${newQueryString || ""}`;
 }
 
-export function clearBookmarkParamInUrl(opts) {
-  setBookmarkParamInUrl("", opts);
+export function readBookmarkFromLocation() {
+  const qs = getHashQueryString();
+  const params = new URLSearchParams(qs);
+  const b = params.get("b");
+  return b || null;
+}
+
+export function writeBookmarkToLocation(encoded) {
+  const qs = getHashQueryString();
+  const params = new URLSearchParams(qs);
+  params.set("b", encoded);
+  const next = `?${params.toString()}`;
+  setHashQueryString(next);
+}
+
+export function clearBookmarkFromLocation() {
+  const qs = getHashQueryString();
+  const params = new URLSearchParams(qs);
+  params.delete("b");
+  const s = params.toString();
+  setHashQueryString(s ? `?${s}` : "");
 }
