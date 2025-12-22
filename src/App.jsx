@@ -19,32 +19,47 @@ import InfrastructureDetails from "./pages/InfrastructureDetails";
 import AuthPage from "./pages/Auth.jsx";
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
+
 import BookmarksModal from "./bookmarks/BookmarksModal.jsx";
+
+const BRAND_PURPLE = "#1d186d";
 
 function AppShell() {
   const { logout } = useAuth();
   const [isBookmarksOpen, setIsBookmarksOpen] = React.useState(false);
-return (
-    <div className="min-h-screen bg-white">
-      <div className="w-full flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-white sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-[#1d186d] text-white font-black flex items-center justify-center">
-            AI
-          </div>
-          <div className="font-bold tracking-wide text-gray-900">ME-DMZ</div>
-        </div>
 
-        <button
-          onClick={() => logout({ redirect: true })}
-          className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:opacity-95"
-        >
-          Sign out
-        </button>
+  return (
+    <div className="min-h-screen bg-white">
+      <div
+        className="w-full flex items-center justify-between px-6 py-4 text-white sticky top-0 z-50"
+        style={{ backgroundColor: BRAND_PURPLE }}
+      >
+        <a href="https://me-dmz.com" target="_blank" rel="noreferrer">
+          <div className="text-xl font-bold tracking-wide">ME-DMZ</div>
+        </a>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsBookmarksOpen(true)}
+            className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white text-white"
+            style={{ backgroundColor: "transparent" }}
+          >
+            Bookmarks
+          </button>
+
+          <button
+            onClick={() => logout({ redirect: true })}
+            className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white text-white"
+            style={{ backgroundColor: "transparent" }}
+          >
+            Sign out
+          </button>
+        </div>
       </div>
 
-        <BookmarksModal isOpen={isBookmarksOpen} onClose={() => setIsBookmarksOpen(false)} />
+      <BookmarksModal isOpen={isBookmarksOpen} onClose={() => setIsBookmarksOpen(false)} />
 
-      <div className="min-h-[calc(100vh-56px)]">
+      <div className="min-h-[calc(100vh-64px)]">
         <Outlet />
       </div>
     </div>
@@ -64,90 +79,22 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          
-                  {/* HOME */}
-                  <Route path="/" element={<HomeRelationships />} />
-          
-                  {/* PARTICIPANTS */}
-                  <Route path="/participants" element={<ParticipantsHub />} />
-          
-                  {/* PARTICIPANTS → ORGANIZATIONS */}
-                  <Route
-                    path="/participants/organizations"
-                    element={<OrganizationsSearch />}
-                  />
-          
-                  {/* ORG DEFINITIONS */}
-                  <Route
-                    path="/participants/organizations/functional-types"
-                    element={<FunctionalTypes />}
-                  />
-          
-                  <Route
-                    path="/participants/organizations/content-types"
-                    element={<ContentTypes />}
-                  />
-          
-                  <Route
-                    path="/participants/organizations/services"
-                    element={<Services />}
-                  />
-          
-                  <Route
-                    path="/participants/organizations/production-locations"
-                    element={<ProductionLocations />}
-                  />
-          
-                  <Route
-                    path="/participants/organizations/production-locations/regions/:region"
-                    element={<SalesRegionDetails />}
-                  />
-          
-                  <Route
-                    path="/participants/organizations/production-locations/countries/:country"
-                    element={<CountryDetails />}
-                  />
-          
-                  <Route
-                    path="/participants/organizations/infrastructure"
-                    element={<Infrastructure />}
-                  />
-          
-                  <Route
-                    path="/participants/organizations/infrastructure/:infraName"
-                    element={<InfrastructureDetails />}
-                  />
-          
-          
-                  {/* ✅ IMPORTANT: schema must come BEFORE :orgId */}
-                  <Route
-                    path="/participants/organizations/schema"
-                    element={<OrganizationSchema />}
-                  />
-          
-                  <Route
-                    path="/participants/organizations/:orgId"
-                    element={<OrganizationProfile />}
-                  />
-          
-                  {/* PLACEHOLDERS (COMING NEXT) */}
-                  <Route
-                    path="/participants/people"
-                    element={<div style={{ padding: 40 }}>People (coming soon)</div>}
-                  />
-                  <Route
-                    path="/tasks"
-                    element={<div style={{ padding: 40 }}>Tasks (coming soon)</div>}
-                  />
-                  <Route
-                    path="/infrastructure"
-                    element={<Infrastructure />}
-                  />
-                  <Route
-                    path="/creative-works"
-                    element={<div style={{ padding: 40 }}>Creative Works (coming soon)</div>}
-                  />
-                
+          <Route path="/" element={<OrganizationsSearch />} />
+
+          <Route path="/hub" element={<ParticipantsHub />} />
+          <Route path="/home_relationships" element={<HomeRelationships />} />
+          <Route path="/organizations" element={<OrganizationsSearch />} />
+          <Route path="/organizations/:id" element={<OrganizationProfile />} />
+          <Route path="/organizations/:id/schema" element={<OrganizationSchema />} />
+
+          <Route path="/functional_types" element={<FunctionalTypes />} />
+          <Route path="/content_types" element={<ContentTypes />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/production_locations" element={<ProductionLocations />} />
+          <Route path="/sales_regions/:region" element={<SalesRegionDetails />} />
+          <Route path="/countries/:country" element={<CountryDetails />} />
+          <Route path="/infrastructure" element={<Infrastructure />} />
+          <Route path="/infrastructure/:name" element={<InfrastructureDetails />} />
         </Route>
       </Routes>
     </HashRouter>
