@@ -1,6 +1,6 @@
-// App.jsx
+// src/App.jsx
 import React from "react";
-import { HashRouter, Routes, Route, Outlet } from "react-router-dom";
+import { HashRouter, Routes, Route, Outlet, useNavigate } from "react-router-dom";
 
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
@@ -26,6 +26,7 @@ import BookmarksModal from "./bookmarks/BookmarksModal.jsx";
 const BRAND_PURPLE = "#1d186d";
 
 function AppShell() {
+  const navigate = useNavigate();
   const { logout } = useAuth();
   const [isBookmarksOpen, setIsBookmarksOpen] = React.useState(false);
 
@@ -35,12 +36,19 @@ function AppShell() {
         className="w-full flex items-center justify-between px-6 py-4 text-white sticky top-0 z-50"
         style={{ backgroundColor: BRAND_PURPLE }}
       >
-        <button onClick={() => navigate("/")}>
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="flex items-center"
+          style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
+          title="Go to home"
+        >
           <div className="text-xl font-bold tracking-wide">ME-DMZ</div>
         </button>
 
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => setIsBookmarksOpen(true)}
             className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white text-white"
             style={{ backgroundColor: "transparent" }}
@@ -49,6 +57,7 @@ function AppShell() {
           </button>
 
           <button
+            type="button"
             onClick={() => logout({ redirect: true })}
             className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white text-white"
             style={{ backgroundColor: "transparent" }}
@@ -85,17 +94,14 @@ export default function App() {
             </ProtectedRoute>
           }
         >
-          {/* ✅ Choose ONE canonical "/" route to avoid conflicts */}
+          {/* ✅ ONE canonical "/" route */}
           <Route path="/" element={<HomeRelationships />} />
 
           {/* PARTICIPANTS */}
           <Route path="/participants" element={<ParticipantsHub />} />
 
           {/* PARTICIPANTS → ORGANIZATIONS */}
-          <Route
-            path="/participants/organizations"
-            element={<OrganizationsSearch />}
-          />
+          <Route path="/participants/organizations" element={<OrganizationsSearch />} />
 
           {/* ORG DEFINITIONS */}
           <Route
@@ -161,12 +167,16 @@ export default function App() {
           />
 
           {/* Legacy/alias routes (keep old URLs working) */}
-          <Route path="/participants/organizations/:id" element={<OrganizationProfile />} />
-          <Route path="/participants/organizations/:id/schema" element={<OrganizationSchema />} />
+          <Route
+            path="/participants/organizations/:id"
+            element={<OrganizationProfile />}
+          />
+          <Route
+            path="/participants/organizations/:id/schema"
+            element={<OrganizationSchema />}
+          />
         </Route>
       </Routes>
     </HashRouter>
   );
 }
-
-
