@@ -35,9 +35,9 @@ function AppShell() {
         className="w-full flex items-center justify-between px-6 py-4 text-white sticky top-0 z-50"
         style={{ backgroundColor: BRAND_PURPLE }}
       >
-        <a href="https://me-dmz.com" target="_blank" rel="noreferrer">
+        <button onClick={() => navigate("/")}">
           <div className="text-xl font-bold tracking-wide">ME-DMZ</div>
-        </a>
+        </button>
 
         <div className="flex items-center gap-3">
           <button
@@ -168,3 +168,4 @@ export default function App() {
     </HashRouter>
   );
 }
+
