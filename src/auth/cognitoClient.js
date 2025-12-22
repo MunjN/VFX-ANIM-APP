@@ -1,5 +1,6 @@
 // src/auth/cognitoClient.js
 // Lightweight Cognito helper using amazon-cognito-identity-js
+// Matches the pattern from your AWS dashboard side project.
 
 import {
   CognitoUserPool,
@@ -18,8 +19,12 @@ if (!poolData.UserPoolId || !poolData.ClientId) {
 
 export const userPool = new CognitoUserPool(poolData);
 
+function makeUser(username) {
+  return new CognitoUser({ Username: username, Pool: userPool });
+}
+
 export function signIn(username, password) {
-  const user = new CognitoUser({ Username: username, Pool: userPool });
+  const user = makeUser(username);
   const authDetails = new AuthenticationDetails({
     Username: username,
     Password: password,
@@ -44,11 +49,32 @@ export function signUp(username, password, attributes = []) {
 }
 
 export function confirmSignUp(username, code) {
-  const user = new CognitoUser({ Username: username, Pool: userPool });
+  const user = makeUser(username);
   return new Promise((resolve, reject) => {
     user.confirmRegistration(code, true, (err, res) => {
       if (err) reject(err);
       else resolve(res);
+    });
+  });
+}
+
+export function forgotPassword(username) {
+  const user = makeUser(username);
+  return new Promise((resolve, reject) => {
+    user.forgotPassword({
+      onSuccess: (data) => resolve(data),
+      onFailure: (err) => reject(err),
+      inputVerificationCode: (data) => resolve({ challenge: "INPUT_VERIFICATION_CODE", data }),
+    });
+  });
+}
+
+export function confirmForgotPassword(username, code, newPassword) {
+  const user = makeUser(username);
+  return new Promise((resolve, reject) => {
+    user.confirmPassword(code, newPassword, {
+      onSuccess: () => resolve(true),
+      onFailure: (err) => reject(err),
     });
   });
 }
