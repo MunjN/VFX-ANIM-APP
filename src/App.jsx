@@ -35,7 +35,7 @@ function AppShell() {
         className="w-full flex items-center justify-between px-6 py-4 text-white sticky top-0 z-50"
         style={{ backgroundColor: BRAND_PURPLE }}
       >
-        <button onClick={() => navigate("/")}">
+        <button onClick={() => navigate("/")}>
           <div className="text-xl font-bold tracking-wide">ME-DMZ</div>
         </button>
 
@@ -168,4 +168,5 @@ export default function App() {
     </HashRouter>
   );
 }
+
 
