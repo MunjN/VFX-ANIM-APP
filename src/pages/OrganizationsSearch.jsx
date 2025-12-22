@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useBookmarkSync } from "../bookmarks/useBookmarkSync";
 import { useLocation, useNavigate } from "react-router-dom";
 import GoToDropdown from "../components/GoToDropdown";
 
@@ -283,6 +284,35 @@ export default function OrganizationsSearch() {
 
   // Compare (inline diff between two orgs)
   const [compareOpen, setCompareOpen] = useState(false);
+
+  // URL bookmarks (Option A) for this page:
+  // - Encodes view-state into ?b=...
+  // - Restores view-state from ?b=... on load (only when routeKey matches)
+  useBookmarkSync({
+    routeKey: "organizations",
+    getState: () => ({
+      query,
+      page,
+      pageSize,
+      selected,
+      yearMin,
+      yearMax,
+      ctMatch,
+      geoLocationIds,
+    }),
+    applyState: (s) => {
+      if (typeof s?.query === "string") setQuery(s.query);
+      if (Number.isFinite(Number(s?.page))) setPage(Math.max(1, Number(s.page)));
+      if (Number.isFinite(Number(s?.pageSize))) setPageSize(Math.max(1, Number(s.pageSize)));
+      if (s?.selected && typeof s.selected === "object") setSelected(s.selected);
+      if (typeof s?.yearMin === "string") setYearMin(s.yearMin);
+      if (typeof s?.yearMax === "string") setYearMax(s.yearMax);
+      if (typeof s?.ctMatch === "string") setCtMatch(s.ctMatch);
+      if (Array.isArray(s?.geoLocationIds)) setGeoLocationIds(s.geoLocationIds);
+    },
+    debounceMs: 300,
+  });
+
   const [selectedCompareIds, setSelectedCompareIds] = useState([]); // [orgId1, orgId2]
   const selectedCompare = useMemo(() => {
     const byId = new Map(orgs.map((o) => [String(o?.ORG_ID ?? ""), o]));
