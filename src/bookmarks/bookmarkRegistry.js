@@ -1,43 +1,76 @@
 // src/bookmarks/bookmarkRegistry.js
 // Central place to define bookmark schemas per routeKey.
-// This enables normalization (defaults + sanitization) and future migrations.
+// Enables normalization (defaults + sanitization) and future migrations.
 
 export const BOOKMARK_VERSION = 1;
 
 /**
  * Each entry provides:
- * - defaults: the minimum shape for that page's state
- * - sanitize: (state) => sanitizedState (drops unknown fields, enforces types)
+ * - defaults: minimum shape for that page's state
+ * - sanitize: (state) => sanitizedState
  *
- * Add new pages by adding a new routeKey entry.
+ * Add new pages by adding a routeKey entry.
  */
 export const bookmarkRegistry = {
-  // Example starter schema for Organizations Search.
-  // We'll tighten/expand this once we wire OrganizationsSearch.jsx.
   organizations: {
     defaults: {
-      q: "", // search query
-      country: null,
-      sizing: null,
-      tags: [], // e.g., services/content/infra filters
-      sort: null,
+      query: "",
       page: 1,
+      pageSize: 25,
+      selected: {},
+
+      // Optional filters used in OrganizationsSearch
+      yearMin: "",
+      yearMax: "",
+      ctMatch: "any",
+      geoLocationIds: [],
     },
     sanitize: (s) => {
-      const safe = {
-        q: typeof s?.q === "string" ? s.q : "",
-        country: typeof s?.country === "string" ? s.country : null,
-        sizing: typeof s?.sizing === "string" ? s.sizing : null,
-        tags: Array.isArray(s?.tags) ? s.tags.filter((t) => typeof t === "string") : [],
-        sort: typeof s?.sort === "string" ? s.sort : null,
+      const out = {
+        query: typeof s?.query === "string" ? s.query : "",
         page: Number.isFinite(Number(s?.page)) ? Math.max(1, Number(s.page)) : 1,
+        pageSize: Number.isFinite(Number(s?.pageSize)) ? Math.max(1, Number(s.pageSize)) : 25,
+        selected: s?.selected && typeof s.selected === "object" ? s.selected : {},
+        yearMin: typeof s?.yearMin === "string" ? s.yearMin : "",
+        yearMax: typeof s?.yearMax === "string" ? s.yearMax : "",
+        ctMatch: typeof s?.ctMatch === "string" ? s.ctMatch : "any",
+        geoLocationIds: Array.isArray(s?.geoLocationIds)
+          ? s.geoLocationIds.filter((x) => typeof x === "string" || typeof x === "number")
+          : [],
       };
-      return safe;
+      return out;
     },
   },
 
-  // Default fallback schema for pages that haven't opted into deep state yet.
-  // (They can still be bookmarked via full URL in the modal.)
+  infrastructure: {
+    defaults: {
+      query: "",
+      page: 1,
+      pageSize: 25,
+      selected: {},
+    },
+    sanitize: (s) => ({
+      query: typeof s?.query === "string" ? s.query : "",
+      page: Number.isFinite(Number(s?.page)) ? Math.max(1, Number(s.page)) : 1,
+      pageSize: Number.isFinite(Number(s?.pageSize)) ? Math.max(1, Number(s.pageSize)) : 25,
+      selected: s?.selected && typeof s.selected === "object" ? s.selected : {},
+    }),
+  },
+
+  production_locations: {
+    defaults: {
+      query: "",
+      page: 1,
+      pageSize: 25,
+      selected: {},
+    },
+    sanitize: (s) => ({
+      query: typeof s?.query === "string" ? s.query : "",
+      page: Number.isFinite(Number(s?.page)) ? Math.max(1, Number(s.page)) : 1,
+      pageSize: Number.isFinite(Number(s?.pageSize)) ? Math.max(1, Number(s.pageSize)) : 25,
+      selected: s?.selected && typeof s.selected === "object" ? s.selected : {},
+    }),
+  },
 };
 
 export function getSchema(routeKey) {
