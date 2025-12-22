@@ -3,8 +3,8 @@ import { useAuth } from "../auth/AuthContext.jsx";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function AuthPage() {
-  // NOTE: This page intentionally mirrors the UI from the AI-Dashboard-AWS side project.
-  // It assumes AuthContext exposes: signIn, signUp, verify, forgotPassword, confirmForgotPassword, status, setStatus
+  // This page matches the AI-Dashboard-AWS auth UI (colors/layout),
+  // with added Forgot Password flow.
   const {
     signUp,
     verify,
@@ -45,11 +45,10 @@ export default function AuthPage() {
 
   // If already signed in, go where they intended.
   if (isAuthenticated) {
-    // In HashRouter, navigate works fine.
     setTimeout(() => navigate(nextPath), 0);
   }
 
-  const handleLogin = async (e) => {
+  const onLogin = async (e) => {
     e.preventDefault();
     setStatus("");
     try {
@@ -60,7 +59,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleSignup = async (e) => {
+  const onSignup = async (e) => {
     e.preventDefault();
     setStatus("");
     try {
@@ -73,19 +72,19 @@ export default function AuthPage() {
     }
   };
 
-  const handleVerify = async (e) => {
+  const onVerify = async (e) => {
     e.preventDefault();
     setStatus("");
     try {
       await verify(pendingEmail, verifyForm.code);
-      setStatus("Verified! You can now log in.");
+      setStatus("Verified! You can now sign in.");
       setTab("login");
     } catch (err) {
       setStatus(err?.message || "Verification failed");
     }
   };
 
-  const handleForgotStart = async (e) => {
+  const onForgotStart = async (e) => {
     e.preventDefault();
     setStatus("");
     try {
@@ -97,7 +96,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleForgotConfirm = async (e) => {
+  const onForgotConfirm = async (e) => {
     e.preventDefault();
     setStatus("");
     try {
@@ -106,7 +105,7 @@ export default function AuthPage() {
         forgotForm.code,
         forgotForm.newPassword
       );
-      setStatus("Password updated. Please log in.");
+      setStatus("Password updated. Please sign in.");
       setTab("login");
       setLoginForm((p) => ({ ...p, email: pendingEmail || forgotForm.email, password: "" }));
     } catch (err) {
@@ -115,49 +114,48 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0b1220] via-[#0f1b34] to-[#0a0f1a] flex items-center justify-center p-6">
-      <div className="w-full max-w-md bg-white/95 rounded-2xl shadow-2xl p-8 border border-white/20">
-        <div className="flex flex-col items-center mb-6">
-          <a href="/#/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#1d4ed8] flex items-center justify-center text-white font-black">
-              AI
-            </div>
-            <div className="text-xl font-bold tracking-wide">ME-DMZ</div>
-          </a>
-          <div className="mt-2 text-sm text-gray-600 text-center">
-            Sign in to access the dashboard.
-          </div>
-        </div>
+    <div className="min-h-screen bg-[#1d186d] text-white flex flex-col items-center">
+      {/* header */}
+      <div className="w-full flex items-center justify-between px-6 py-4">
+        <a href="https://me-dmz.com" target="_blank" rel="noreferrer">
+          <div className="text-xl font-bold tracking-wide">ME-DMZ</div>
+        </a>
+        <div className="text-sm opacity-80">AI Tools Dashboard</div>
+      </div>
 
-        <div className="flex gap-2 mb-6">
+      {/* card */}
+      <div className="w-full max-w-md bg-white text-[#1d186d] p-8 rounded-xl shadow-xl mt-10">
+        <div className="flex gap-3 mb-6">
           <button
+            className={`flex-1 py-2 rounded-md font-semibold ${
+              tab === "login" ? "bg-[#1d186d] text-white" : "bg-gray-100"
+            }`}
             onClick={() => {
               setTab("login");
               setStatus("");
             }}
-            className={`flex-1 py-2 rounded-xl font-semibold transition ${
-              tab === "login" ? "bg-[#1d4ed8] text-white" : "bg-gray-100 text-gray-700"
-            }`}
           >
-            Login
+            Sign In
           </button>
+
           <button
+            className={`flex-1 py-2 rounded-md font-semibold ${
+              tab === "signup" ? "bg-[#1d186d] text-white" : "bg-gray-100"
+            }`}
             onClick={() => {
               setTab("signup");
               setStatus("");
             }}
-            className={`flex-1 py-2 rounded-xl font-semibold transition ${
-              tab === "signup" ? "bg-[#1d4ed8] text-white" : "bg-gray-100 text-gray-700"
-            }`}
           >
-            Sign Up
+            Create Account
           </button>
         </div>
 
         {tab === "login" && (
-          <form onSubmit={handleLogin} className="space-y-3">
+          <form onSubmit={onLogin} className="space-y-3">
+            <h2 className="text-2xl font-bold mb-2 text-center">Sign In</h2>
             <input
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none"
               type="email"
               placeholder="Email"
               value={loginForm.email}
@@ -165,19 +163,18 @@ export default function AuthPage() {
               required
             />
             <input
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none"
               type="password"
               placeholder="Password"
               value={loginForm.password}
               onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
               required
             />
-
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-[#1d4ed8] text-white font-bold hover:opacity-95 transition"
+              className="w-full bg-[#1d186d] text-white py-3 rounded-lg font-semibold hover:opacity-95"
             >
-              Login
+              Sign In
             </button>
 
             <button
@@ -188,7 +185,7 @@ export default function AuthPage() {
                 setForgotForm((p) => ({ ...p, email: loginForm.email || p.email }));
                 setPendingEmail(loginForm.email || pendingEmail);
               }}
-              className="w-full text-sm text-blue-700 font-semibold hover:underline"
+              className="w-full text-sm text-[#1d186d] font-semibold hover:underline"
             >
               Forgot password?
             </button>
@@ -196,16 +193,17 @@ export default function AuthPage() {
         )}
 
         {tab === "signup" && (
-          <form onSubmit={handleSignup} className="space-y-3">
+          <form onSubmit={onSignup} className="space-y-3">
+            <h2 className="text-2xl font-bold mb-2 text-center">Create Account</h2>
             <input
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none"
               placeholder="Full Name"
               value={signupForm.fullName}
               onChange={(e) => setSignupForm({ ...signupForm, fullName: e.target.value })}
               required
             />
             <input
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none"
               type="email"
               placeholder="Email"
               value={signupForm.email}
@@ -213,7 +211,7 @@ export default function AuthPage() {
               required
             />
             <input
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none"
               type="password"
               placeholder="Password"
               value={signupForm.password}
@@ -222,7 +220,7 @@ export default function AuthPage() {
             />
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-[#1d4ed8] text-white font-bold hover:opacity-95 transition"
+              className="w-full bg-[#1d186d] text-white py-3 rounded-lg font-semibold hover:opacity-95"
             >
               Create Account
             </button>
@@ -230,12 +228,13 @@ export default function AuthPage() {
         )}
 
         {tab === "verify" && (
-          <form onSubmit={handleVerify} className="space-y-3">
-            <div className="text-sm text-gray-700">
+          <form onSubmit={onVerify} className="space-y-3">
+            <h2 className="text-2xl font-bold mb-2 text-center">Verify Email</h2>
+            <div className="text-sm text-gray-600 text-center">
               Enter the verification code sent to <span className="font-semibold">{pendingEmail}</span>
             </div>
             <input
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none"
               placeholder="Verification Code"
               value={verifyForm.code}
               onChange={(e) => setVerifyForm({ code: e.target.value })}
@@ -243,7 +242,7 @@ export default function AuthPage() {
             />
             <button
               type="submit"
-              className="w-full py-3 rounded-xl bg-[#1d4ed8] text-white font-bold hover:opacity-95 transition"
+              className="w-full bg-[#1d186d] text-white py-3 rounded-lg font-semibold hover:opacity-95"
             >
               Verify
             </button>
@@ -252,10 +251,10 @@ export default function AuthPage() {
 
         {tab === "forgot" && (
           <div className="space-y-4">
-            <form onSubmit={handleForgotStart} className="space-y-3">
-              <div className="text-sm font-semibold text-gray-800">Reset password</div>
+            <form onSubmit={onForgotStart} className="space-y-3">
+              <h2 className="text-2xl font-bold mb-2 text-center">Reset Password</h2>
               <input
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none"
                 type="email"
                 placeholder="Email"
                 value={forgotForm.email}
@@ -264,22 +263,22 @@ export default function AuthPage() {
               />
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl bg-gray-900 text-white font-bold hover:opacity-95 transition"
+                className="w-full bg-gray-900 text-white py-3 rounded-lg font-semibold hover:opacity-95"
               >
                 Send Reset Code
               </button>
             </form>
 
-            <form onSubmit={handleForgotConfirm} className="space-y-3">
+            <form onSubmit={onForgotConfirm} className="space-y-3">
               <input
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none"
                 placeholder="Reset Code"
                 value={forgotForm.code}
                 onChange={(e) => setForgotForm({ ...forgotForm, code: e.target.value })}
                 required
               />
               <input
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none"
                 type="password"
                 placeholder="New Password"
                 value={forgotForm.newPassword}
@@ -288,7 +287,7 @@ export default function AuthPage() {
               />
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl bg-[#1d4ed8] text-white font-bold hover:opacity-95 transition"
+                className="w-full bg-[#1d186d] text-white py-3 rounded-lg font-semibold hover:opacity-95"
               >
                 Update Password
               </button>
@@ -301,7 +300,7 @@ export default function AuthPage() {
                 }}
                 className="w-full text-sm text-gray-700 font-semibold hover:underline"
               >
-                Back to login
+                Back to sign in
               </button>
             </form>
           </div>
