@@ -1,8 +1,7 @@
-import { HashRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route, Outlet } from "react-router-dom";
 
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
 import AuthPage from "./pages/Auth.jsx";
-
 import HomeRelationships from "./pages/HomeRelationships";
 import ParticipantsHub from "./pages/ParticipantsHub";
 import OrganizationsSearch from "./pages/OrganizationsSearch";
@@ -22,146 +21,84 @@ export default function App() {
   return (
     <HashRouter>
       <Routes>
-        {/* Public */}
         <Route path="/auth" element={<AuthPage />} />
-
-        {/* Protected */}
         <Route
-          path="/"
           element={
             <ProtectedRoute>
-              <HomeRelationships />
+              <Outlet />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="/participants"
-          element={
-            <ProtectedRoute>
-              <ParticipantsHub />
-            </ProtectedRoute>
-          }
-        />
-        <Route
+        >
+          {/* HOME */}
+          <Route path="/" element={<HomeRelationships />} />
+          {/* PARTICIPANTS */}
+          <Route path="/participants" element={<ParticipantsHub />} />
+          {/* PARTICIPANTS → ORGANIZATIONS */}
+          <Route
           path="/participants/organizations"
-          element={
-            <ProtectedRoute>
-              <OrganizationsSearch />
-            </ProtectedRoute>
-          }
-        />
-        <Route
+          element={<OrganizationsSearch />}
+          />
+          {/* ORG DEFINITIONS */}
+          <Route
           path="/participants/organizations/functional-types"
-          element={
-            <ProtectedRoute>
-              <FunctionalTypes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
+          element={<FunctionalTypes />}
+          />
+          <Route
           path="/participants/organizations/content-types"
-          element={
-            <ProtectedRoute>
-              <ContentTypes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
+          element={<ContentTypes />}
+          />
+          <Route
           path="/participants/organizations/services"
-          element={
-            <ProtectedRoute>
-              <Services />
-            </ProtectedRoute>
-          }
-        />
-        <Route
+          element={<Services />}
+          />
+          <Route
           path="/participants/organizations/production-locations"
-          element={
-            <ProtectedRoute>
-              <ProductionLocations />
-            </ProtectedRoute>
-          }
-        />
-        <Route
+          element={<ProductionLocations />}
+          />
+          <Route
           path="/participants/organizations/production-locations/regions/:region"
-          element={
-            <ProtectedRoute>
-              <SalesRegionDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
+          element={<SalesRegionDetails />}
+          />
+          <Route
           path="/participants/organizations/production-locations/countries/:country"
-          element={
-            <ProtectedRoute>
-              <CountryDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
+          element={<CountryDetails />}
+          />
+          <Route
           path="/participants/organizations/infrastructure"
-          element={
-            <ProtectedRoute>
-              <Infrastructure />
-            </ProtectedRoute>
-          }
-        />
-        <Route
+          element={<Infrastructure />}
+          />
+          <Route
           path="/participants/organizations/infrastructure/:infraName"
-          element={
-            <ProtectedRoute>
-              <InfrastructureDetails />
-            </ProtectedRoute>
-          }
-        />
-        <Route
+          element={<InfrastructureDetails />}
+          />
+          {/* ✅ IMPORTANT: schema must come BEFORE :orgId */}
+          <Route
           path="/participants/organizations/schema"
-          element={
-            <ProtectedRoute>
-              <OrganizationSchema />
-            </ProtectedRoute>
-          }
-        />
-        <Route
+          element={<OrganizationSchema />}
+          />
+          <Route
           path="/participants/organizations/:orgId"
-          element={
-            <ProtectedRoute>
-              <OrganizationProfile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
+          element={<OrganizationProfile />}
+          />
+          {/* PLACEHOLDERS (COMING NEXT) */}
+          <Route
           path="/participants/people"
-          element={
-            <ProtectedRoute>
-              <div style={{ padding: 40 }}>People (coming soon)</div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
+          element={<div style={{ padding: 40 }}>People (coming soon)</div>}
+          />
+          <Route
           path="/tasks"
-          element={
-            <ProtectedRoute>
-              <div style={{ padding: 40 }}>Tasks (coming soon)</div>
-            </ProtectedRoute>
-          }
-        />
-        <Route
+          element={<div style={{ padding: 40 }}>Tasks (coming soon)</div>}
+          />
+          <Route
           path="/infrastructure"
-          element={
-            <ProtectedRoute>
-              <Infrastructure />
-            </ProtectedRoute>
-          }
-        />
-        <Route
+          element={<Infrastructure />}
+          />
+          <Route
           path="/creative-works"
-          element={
-            <ProtectedRoute>
-              <div style={{ padding: 40 }}>Creative Works (coming soon)</div>
-            </ProtectedRoute>
-          }
-        />
+          element={<div style={{ padding: 40 }}>Creative Works (coming soon)</div>}
+          />
+        </Route>
+
       </Routes>
     </HashRouter>
   );
