@@ -19,28 +19,30 @@ import InfrastructureDetails from "./pages/InfrastructureDetails";
 import AuthPage from "./pages/Auth.jsx";
 import ProtectedRoute from "./auth/ProtectedRoute.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
+import BookmarksModal from "./bookmarks/BookmarksModal.jsx";
 
 function AppShell() {
   const { logout } = useAuth();
-
-  return (
+  const [isBookmarksOpen, setIsBookmarksOpen] = React.useState(false);
+return (
     <div className="min-h-screen bg-white">
-      <div
-        className="w-full flex items-center justify-between px-6 py-4 text-white sticky top-0 z-50"
-        style={{ backgroundColor: "#1d186d" }}
-      >
-        <a href="https://me-dmz.com" target="_blank" rel="noreferrer">
-          <div className="text-xl font-bold tracking-wide">ME-DMZ</div>
-        </a>
+      <div className="w-full flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-white sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-[#1d186d] text-white font-black flex items-center justify-center">
+            AI
+          </div>
+          <div className="font-bold tracking-wide text-gray-900">ME-DMZ</div>
+        </div>
 
         <button
           onClick={() => logout({ redirect: true })}
-          className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white text-white"
-          style={{ backgroundColor: "transparent" }}
+          className="px-4 py-2 rounded-lg bg-gray-900 text-white font-semibold hover:opacity-95"
         >
           Sign out
         </button>
       </div>
+
+        <BookmarksModal isOpen={isBookmarksOpen} onClose={() => setIsBookmarksOpen(false)} />
 
       <div className="min-h-[calc(100vh-56px)]">
         <Outlet />
