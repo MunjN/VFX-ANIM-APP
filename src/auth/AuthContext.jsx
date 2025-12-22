@@ -1,7 +1,16 @@
 // src/auth/AuthContext.jsx
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Cookies from "js-cookie";
-import { getCurrentSession, signIn as cognitoSignIn, signOut as cognitoSignOut } from "./cognitoClient";
+import {
+  confirmForgotPassword as cognitoConfirmForgotPassword,
+  confirmSignUp as cognitoConfirmSignUp,
+  forgotPassword as cognitoForgotPassword,
+  signIn as cognitoSignIn,
+  signOut as cognitoSignOut,
+  signUp as cognitoSignUp,
+  getCurrentSession,
+} from "./cognitoClient";
+import { CognitoUserAttribute } from "amazon-cognito-identity-js";
 
 /**
  * Auto-logout after 1 hour of inactivity.
@@ -13,7 +22,7 @@ const INACTIVITY_MS = 60 * 60 * 1000;
 const AuthContext = createContext(null);
 
 const COOKIE_OPTIONS = {
-  // 1 hour cookie lifetime by default; if you extend via refresh token later, adjust here.
+  // 1 hour cookie lifetime; inactivity resets are handled by app logic (not cookie refresh).
   expires: 1 / 24, // 1 hour
   sameSite: "Lax",
   secure: true, // required on https (GitHub Pages). For localhost, browsers may ignore secure cookies.
@@ -63,6 +72,7 @@ function useInactivityLogout({ enabled, onTimeout }) {
 export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState(null);
+  const [status, setStatus] = useState("");
 
   const isAuthenticated = !!session;
 
@@ -99,12 +109,41 @@ export function AuthProvider({ children }) {
     }
   };
 
-  const login = async (username, password) => {
-    const { session: s } = await cognitoSignIn(username, password);
+  const signIn = async (email, password) => {
+    setStatus("");
+    const { session: s } = await cognitoSignIn(email, password);
     setSession(s);
     setTokensFromSession(s);
-    window.location.hash = "#/";
     return s;
+  };
+
+  const signUp = async (fullName, email, password) => {
+    setStatus("");
+    const attrs = [];
+    if (fullName) {
+      // Standard attribute supported in many user pools
+      attrs.push(new CognitoUserAttribute({ Name: "name", Value: fullName }));
+    }
+    await cognitoSignUp(email, password, attrs);
+    return true;
+  };
+
+  const verify = async (email, code) => {
+    setStatus("");
+    await cognitoConfirmSignUp(email, code);
+    return true;
+  };
+
+  const forgotPassword = async (email) => {
+    setStatus("");
+    await cognitoForgotPassword(email);
+    return true;
+  };
+
+  const confirmForgotPassword = async (email, code, newPassword) => {
+    setStatus("");
+    await cognitoConfirmForgotPassword(email, code, newPassword);
+    return true;
   };
 
   // Auto logout after inactivity
@@ -118,11 +157,21 @@ export function AuthProvider({ children }) {
       isLoading,
       isAuthenticated,
       session,
-      login,
+
+      // UI helpers
+      status,
+      setStatus,
+
+      // Actions matching Auth.jsx UI
+      signIn,
+      signUp,
+      verify,
+      forgotPassword,
+      confirmForgotPassword,
       logout,
       refreshFromCognito,
     }),
-    [isLoading, isAuthenticated, session]
+    [isLoading, isAuthenticated, session, status]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
