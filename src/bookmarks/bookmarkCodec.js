@@ -4,7 +4,6 @@
 // - Decodes it back (with versioning + basic validation).
 //
 // We intentionally do NOT depend on external compression libs to keep installs simple.
-// If you later want shorter URLs, we can swap in lz-string with the same interface.
 
 const VERSION = 1;
 
