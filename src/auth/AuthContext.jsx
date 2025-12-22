@@ -1,6 +1,5 @@
 // src/auth/AuthContext.jsx
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import Cookies from "js-cookie";
 import {
   confirmForgotPassword as cognitoConfirmForgotPassword,
   confirmSignUp as cognitoConfirmSignUp,
@@ -13,37 +12,13 @@ import {
 import { CognitoUserAttribute } from "amazon-cognito-identity-js";
 
 /**
- * Auto-logout after 1 hour of inactivity.
- * - Inactivity is tracked by user interactions (mouse, keyboard, scroll, touch)
- * - When timeout triggers, we clear tokens and sign out locally, then send user to /#/auth
+ * Auto-logout after 60 minutes of inactivity.
+ * - Tracked by user interactions (mouse, keyboard, scroll, touch)
+ * - When timeout triggers, we sign out locally and send user to /#/auth
  */
 const INACTIVITY_MS = 60 * 60 * 1000;
 
 const AuthContext = createContext(null);
-
-const COOKIE_OPTIONS = {
-  // 1 hour cookie lifetime; inactivity resets are handled by app logic (not cookie refresh).
-  expires: 1 / 24, // 1 hour
-  sameSite: "Lax",
-  secure: true, // required on https (GitHub Pages). For localhost, browsers may ignore secure cookies.
-};
-
-function setTokensFromSession(session) {
-  if (!session) return;
-  const idToken = session.getIdToken().getJwtToken();
-  const accessToken = session.getAccessToken().getJwtToken();
-  const refreshToken = session.getRefreshToken().getToken();
-
-  Cookies.set("id_token", idToken, COOKIE_OPTIONS);
-  Cookies.set("access_token", accessToken, COOKIE_OPTIONS);
-  Cookies.set("refresh_token", refreshToken, COOKIE_OPTIONS);
-}
-
-function clearTokens() {
-  Cookies.remove("id_token");
-  Cookies.remove("access_token");
-  Cookies.remove("refresh_token");
-}
 
 function useInactivityLogout({ enabled, onTimeout }) {
   const timerRef = useRef(null);
@@ -80,7 +55,6 @@ function parseAllowedGroups() {
 
 function getGroupsFromSession(session) {
   try {
-    // amazon-cognito-identity-js exposes payload on the token object
     const payload = session?.getIdToken?.()?.payload || {};
     const groups = payload["cognito:groups"];
     if (Array.isArray(groups)) return groups;
@@ -88,6 +62,23 @@ function getGroupsFromSession(session) {
   } catch {
     return [];
   }
+}
+
+function setSessionTokens(session) {
+  // Store tokens in sessionStorage so they survive refresh but not tab close.
+  try {
+    const idToken = session?.getIdToken?.()?.getJwtToken?.();
+    const accessToken = session?.getAccessToken?.()?.getJwtToken?.();
+    if (idToken) window.sessionStorage.setItem("id_token", idToken);
+    if (accessToken) window.sessionStorage.setItem("access_token", accessToken);
+  } catch {
+    // ignore
+  }
+}
+
+function clearSessionTokens() {
+  window.sessionStorage.removeItem("id_token");
+  window.sessionStorage.removeItem("access_token");
 }
 
 export function AuthProvider({ children }) {
@@ -100,7 +91,6 @@ export function AuthProvider({ children }) {
 
   const isAuthenticated = !!session;
   const isAuthorized = useMemo(() => {
-    // If no allow-list provided, treat as open access.
     if (!allowedGroups.length) return true;
     return userGroups.some((g) => allowedGroups.includes(g));
   }, [allowedGroups, userGroups]);
@@ -110,14 +100,14 @@ export function AuthProvider({ children }) {
       const s = await getCurrentSession();
       if (s && s.isValid()) {
         setSession(s);
-        setTokensFromSession(s);
+        setSessionTokens(s);
       } else {
         setSession(null);
-        clearTokens();
+        clearSessionTokens();
       }
     } catch {
       setSession(null);
-      clearTokens();
+      clearSessionTokens();
     } finally {
       setIsLoading(false);
     }
@@ -133,7 +123,7 @@ export function AuthProvider({ children }) {
       cognitoSignOut();
     } finally {
       setSession(null);
-      clearTokens();
+      clearSessionTokens();
       if (redirect) window.location.hash = "#/auth";
     }
   };
@@ -142,7 +132,7 @@ export function AuthProvider({ children }) {
     setStatus("");
     const { session: s } = await cognitoSignIn(email, password);
     setSession(s);
-    setTokensFromSession(s);
+    setSessionTokens(s);
     return s;
   };
 
@@ -174,7 +164,6 @@ export function AuthProvider({ children }) {
     return true;
   };
 
-  // Auto logout after inactivity (only if signed in)
   useInactivityLogout({
     enabled: isAuthenticated,
     onTimeout: () => logout({ redirect: true }),
@@ -190,11 +179,9 @@ export function AuthProvider({ children }) {
       userGroups,
       allowedGroups,
 
-      // UI helpers
       status,
       setStatus,
 
-      // Actions matching Auth.jsx UI
       signIn,
       signUp,
       verify,
@@ -203,15 +190,7 @@ export function AuthProvider({ children }) {
       logout,
       refreshFromCognito,
     }),
-    [
-      isLoading,
-      isAuthenticated,
-      isAuthorized,
-      session,
-      userGroups,
-      allowedGroups,
-      status,
-    ]
+    [isLoading, isAuthenticated, isAuthorized, session, userGroups, allowedGroups, status]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
