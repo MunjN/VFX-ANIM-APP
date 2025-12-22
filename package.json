@@ -32,7 +32,10 @@
     "@turf/turf": "^6.5.0",
     "@mapbox/mapbox-gl-draw": "^1.5.0",
     "js-cookie": "^3.0.5",
-    "amazon-cognito-identity-js": "^6.3.0"
+    "amazon-cognito-identity-js": "^6.3.0",
+    "tailwindcss": "^3.4.17",
+    "postcss": "^8.4.49",
+    "autoprefixer": "^10.4.20"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.2.1",
