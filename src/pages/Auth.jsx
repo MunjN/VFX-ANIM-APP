@@ -109,7 +109,7 @@ export default function AuthPage() {
         <a href="https://me-dmz.com" target="_blank" rel="noreferrer">
           <div className="text-xl font-bold tracking-wide">ME-DMZ</div>
         </a>
-        <div className="text-sm opacity-80">AI Tools Dashboard</div>
+        <div className="text-sm opacity-80">ME-NEXUS VFX-Animation Web App</div>
       </div>
 
       {/* Card */}
