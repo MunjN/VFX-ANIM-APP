@@ -1,69 +1,55 @@
 // src/api/client.js
-// Centralized API client for API Gateway + Lambda.
-// In later steps we will attach Cognito tokens automatically.
+// Centralized API client for API Gateway
+// Reads auth token from sessionStorage (persists across refresh, cleared on tab close)
 
-import Cookies from "js-cookie";
+const API_BASE = import.meta.env.VITE_API_BASE || "";
 
-const API_BASE = (import.meta.env.VITE_API_BASE || "").replace(/\/$/, "");
-
-function buildUrl(path) {
-  if (!API_BASE) {
-    // Allow relative calls in local dev if you keep a proxy,
-    // but for production (GitHub Pages) you should set VITE_API_BASE.
-    return path.startsWith("/") ? path : `/${path}`;
+function getAuthHeaders() {
+  try {
+    const token =
+      window.sessionStorage.getItem("access_token") ||
+      window.sessionStorage.getItem("id_token");
+    if (token) {
+      return {
+        Authorization: `Bearer ${token}`,
+      };
+    }
+  } catch {
+    // ignore
   }
-  if (!path.startsWith("/")) path = `/${path}`;
-  return `${API_BASE}${path}`;
+  return {};
 }
 
-async function request(path, { method = "GET", headers = {}, body, auth = true } = {}) {
-  const url = buildUrl(path);
-
-  const finalHeaders = {
-    "Content-Type": "application/json",
-    ...headers,
-  };
-
-  // Token wiring (placeholder): we'll standardize on a cookie name in Auth module.
-  // If present, send as Bearer token.
-  if (auth) {
-    const idToken = Cookies.get("id_token") || Cookies.get("access_token");
-    if (idToken) finalHeaders.Authorization = `Bearer ${idToken}`;
-  }
-
-  const res = await fetch(url, {
+async function request(method, path, body) {
+  const res = await fetch(`${API_BASE}${path}`, {
     method,
-    headers: finalHeaders,
-    body: body == null ? undefined : typeof body === "string" ? body : JSON.stringify(body),
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
+    body: body ? JSON.stringify(body) : undefined,
   });
 
-  // Helpful error surface
-  const contentType = res.headers.get("content-type") || "";
-  const isJson = contentType.includes("application/json");
-
   if (!res.ok) {
-    let details = "";
+    let msg = res.statusText;
     try {
-      details = isJson ? JSON.stringify(await res.json()) : await res.text();
+      const j = await res.json();
+      msg = j?.message || msg;
     } catch {
-      // ignore parse errors
+      // ignore
     }
-    const err = new Error(`API ${method} ${url} failed: ${res.status} ${res.statusText}${details ? ` - ${details}` : ""}`);
-    err.status = res.status;
-    throw err;
+    throw new Error(msg);
   }
 
   if (res.status === 204) return null;
-  return isJson ? res.json() : res.text();
+  return res.json();
 }
 
 export const api = {
-  get: (path, opts) => request(path, { ...opts, method: "GET" }),
-  post: (path, body, opts) => request(path, { ...opts, method: "POST", body }),
-  put: (path, body, opts) => request(path, { ...opts, method: "PUT", body }),
-  del: (path, opts) => request(path, { ...opts, method: "DELETE" }),
+  get: (path) => request("GET", path),
+  post: (path, body) => request("POST", path, body),
+  put: (path, body) => request("PUT", path, body),
+  del: (path) => request("DELETE", path),
 };
 
-export function getApiBase() {
-  return API_BASE;
-}
+export default api;
