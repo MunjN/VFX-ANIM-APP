@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useBookmarkSync } from "../bookmarks/useBookmarkSync";
 
 const BRAND = {
   ink: "#1E2A78",
@@ -225,6 +226,44 @@ export default function Infrastructure() {
   const [filterSearch, setFilterSearch] = useState({}); // field->string
 
   const [hoverKey, setHoverKey] = useState(null);
+
+  // Deep-linkable bookmarks (Option A): sync infra filters/search/pagination to URL (?b=...)
+  const getBookmarkState = () => ({
+    q,
+    page,
+    pageSize,
+    selected,
+    selectedInfra: Array.from(selectedInfra || []),
+    yearMin,
+    yearMax,
+  });
+
+  const applyBookmarkState = (s) => {
+    if (!s || typeof s !== "object") return;
+
+    if (typeof s.q === "string") setQ(s.q);
+    if (Number.isFinite(Number(s.page))) setPage(Math.max(1, Number(s.page)));
+    if (Number.isFinite(Number(s.pageSize))) setPageSize(Math.max(1, Number(s.pageSize)));
+
+    if (s.selected && typeof s.selected === "object") {
+      setSelected(s.selected);
+      setDraftSelected(s.selected);
+    }
+
+    if (Array.isArray(s.selectedInfra)) {
+      setSelectedInfra(new Set(s.selectedInfra.filter((v) => typeof v === "string")));
+    }
+
+    if (typeof s.yearMin === "string") setYearMin(s.yearMin);
+    if (typeof s.yearMax === "string") setYearMax(s.yearMax);
+  };
+
+  useBookmarkSync({
+    routeKey: "infrastructure",
+    getState: getBookmarkState,
+    applyState: applyBookmarkState,
+    debounceMs: 300,
+  });
 
   const lastQueryRef = useRef("");
 
