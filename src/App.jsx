@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter, Routes, Route } from "react-router-dom";
 
 import HomeRelationships from "./pages/HomeRelationships";
 import ParticipantsHub from "./pages/ParticipantsHub";
@@ -17,7 +17,7 @@ import InfrastructureDetails from "./pages/InfrastructureDetails";
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Routes>
         {/* HOME */}
         <Route path="/" element={<HomeRelationships />} />
@@ -102,6 +102,6 @@ export default function App() {
           element={<div style={{ padding: 40 }}>Creative Works (coming soon)</div>}
         />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
