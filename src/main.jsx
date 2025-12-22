@@ -3,16 +3,12 @@ import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
 import "maplibre-gl/dist/maplibre-gl.css";
 
-// Placeholder wrapper for upcoming global providers (Auth, Bookmarks, etc.).
-// We'll replace the body once we add those modules.
-function AppProviders({ children }) {
-  return children;
-}
+import { AuthProvider } from "./auth/AuthContext.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    <AppProviders>
+    <AuthProvider>
       <App />
-    </AppProviders>
+    </AuthProvider>
   </React.StrictMode>
 );
