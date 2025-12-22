@@ -1,7 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig({
+// GitHub Pages deploy base.
+// For production builds, assets must be served from "/VFX-ANIM-APP/".
+export default defineConfig(({
+  mode
+}) => ({
+  base: mode === "production" ? "/VFX-ANIM-APP/" : "/",
   plugins: [react()],
   server: {
     port: 5173,
@@ -13,4 +18,4 @@ export default defineConfig({
       }
     }
   }
-});
+}));
