@@ -269,7 +269,7 @@ export default function HomeRelationships() {
             description="The steps and methods to be completed in the production process of a Creative Works"
             shape="wedge"
             icon={<DrawingPersonIcon />}
-            onClick={() => navigate("/tasks")}
+            onClick={() => navigate("/participants/organizations/services")}
           />
           <Tile
             title="Infrastructure"
@@ -330,3 +330,4 @@ export default function HomeRelationships() {
     </div>
   );
 }
+
