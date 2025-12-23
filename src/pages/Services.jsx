@@ -13,6 +13,8 @@ const PAGE = {
   max: 1280,
 };
 
+const base = import.meta.env.VITE_API_BASE;
+
 const SERVICES_DEFINITION =
 "This is the list of services offered by the organization in the media creation process."
 /**
@@ -1691,7 +1693,7 @@ export default function Services() {
     setCountsLoading(true);
     setCountsError("");
     try {
-      const res = await fetch("/api/orgs/services/counts");
+      const res = await fetch(base+"/api/orgs/services/counts");
       if (!res.ok) throw new Error(`Counts endpoint not ready (${res.status})`);
       const json = await res.json();
       setTotalsByService(json?.totalsByService || {});
