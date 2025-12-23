@@ -8,6 +8,8 @@ const BRAND = {
   text: "#111827",
 };
 
+const base = import.meta.env.VITE_API_BASE;
+
 function Pill({ children, onClick, title, kind = "soft" }) {
   const base = {
     display: "inline-flex",
@@ -163,7 +165,7 @@ export default function SalesRegionDetails() {
       setLoading(true);
       setErr("");
       try {
-        const url = `/api/locations/regions/${encodeURIComponent(decodedRegion)}/summary?locationScope=${scope}`;
+        const url = `${base}/api/locations/regions/${encodeURIComponent(decodedRegion)}/summary?locationScope=${scope}`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`API error: ${res.status}`);
         const json = await res.json();
