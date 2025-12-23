@@ -2223,7 +2223,7 @@ export default function Services() {
                     flexWrap: "wrap",
                   }}
                 >
-                  <span>Service counts (by token in orgs.csv)</span>
+                  <span>Service counts (from the VFX-Animation Dataset)</span>
                   {totalsByService ? <Pill>Rows: {filteredCountsRows.length.toLocaleString()}</Pill> : null}
                 </div>
 
