@@ -15,6 +15,8 @@ const BRAND = {
   border: "#1E2A78",
 };
 
+const base = import.meta.env.VITE_API_BASE;
+
 function cx(...classes) {
   return classes.filter(Boolean).join(" ");
 }
@@ -245,7 +247,7 @@ export default function ProductionLocations() {
       setLoading(true);
       setErr("");
       try {
-        const res = await fetch("/api/locations/tree");
+        const res = await fetch(base+"/api/locations/tree");
         if (!res.ok) throw new Error(`API error: ${res.status}`);
         const json = await res.json();
         if (!ignore) setTree(json);
@@ -267,7 +269,7 @@ export default function ProductionLocations() {
       setPointsLoading(true);
       setPointsErr("");
       try {
-        const res = await fetch("/api/locations/points");
+        const res = await fetch(base+"/api/locations/points");
         if (!res.ok) throw new Error(`API error: ${res.status}`);
         const json = await res.json();
         if (!ignore) setPoints(Array.isArray(json) ? json : []);
@@ -1167,3 +1169,4 @@ export default function ProductionLocations() {
     </div>
   );
 }
+
