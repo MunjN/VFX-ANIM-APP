@@ -35,6 +35,8 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          VITE_API_BASE: https://c78ehaqlfg.execute-api.us-east-1.amazonaws.com
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
