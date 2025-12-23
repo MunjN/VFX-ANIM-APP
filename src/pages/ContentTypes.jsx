@@ -516,7 +516,6 @@ export default function ContentTypes() {
   const [selected, setSelected] = useState(() => new Set());
   const [matchMode, setMatchMode] = useState("any"); // any | all
 
-  // counts from orgs.csv (via server endpoint)
   const [countsLoading, setCountsLoading] = useState(false);
   const [countsError, setCountsError] = useState("");
   const [totalsByType, setTotalsByType] = useState(null);
@@ -631,7 +630,7 @@ export default function ContentTypes() {
       setTotalsByType(null);
       setTotalOrgs(null);
       setCountsError(
-        "Counts are not available yet. Next file will add the server endpoint to compute counts from orgs.csv."
+        "Counts are not coming in. Please check the server."
       );
     } finally {
       setCountsLoading(false);
@@ -963,7 +962,7 @@ export default function ContentTypes() {
                 <Pill>
                   {tab === "reference"
                     ? "Definitions & Hierarchy"
-                    : "Org Counts (computed from orgs.csv)"}
+                    : "Participant Organization Counts "}
                 </Pill>
 
                 {tab === "counts" ? (
@@ -1560,4 +1559,5 @@ export default function ContentTypes() {
     </div>
   );
 }
+
 
