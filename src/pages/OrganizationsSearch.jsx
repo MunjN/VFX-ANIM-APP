@@ -11,6 +11,7 @@ const BRAND = {
   border: "#1E2A78",
 };
 
+const base = import.meta.env.VITE_API_BASE;
 // fields whose cell values are comma-separated lists
 const TOKEN_FIELDS = new Set([
   "SERVICES",
@@ -472,7 +473,7 @@ export default function OrganizationsSearch() {
     setLoading(true);
     try {
       const params = buildQueryParams();
-      const res = await fetch(`/api/orgs?${params.toString()}`,{cache: 'no-store'});
+      const res = await fetch(`${base}/api/orgs?${params.toString()}`,{cache: 'no-store'});
       const json = await res.json();
       setOrgs(json.data || []);
       setTotal(json.total || 0);
@@ -489,7 +490,7 @@ export default function OrganizationsSearch() {
 
   async function fetchFiltersMeta() {
     try {
-      const res = await fetch("/api/orgs/filters",{cache: 'no-store'});
+      const res = await fetch(base+"/api/orgs/filters",{cache: 'no-store'});
       const json = await res.json();
       setFiltersMeta(json || {});
     } catch (e) {
@@ -519,7 +520,7 @@ export default function OrganizationsSearch() {
         return;
       }
       try {
-        const res = await fetch(`/api/orgs?q=${encodeURIComponent(debouncedQuery)}&page=1&pageSize=8`,{cache: 'no-store'});
+        const res = await fetch(`${base}/api/orgs?q=${encodeURIComponent(debouncedQuery)}&page=1&pageSize=8`,{cache: 'no-store'});
         const json = await res.json();
         if (cancelled) return;
         const names = (json.data || [])
@@ -710,7 +711,7 @@ export default function OrganizationsSearch() {
 
   async function downloadDataDictPDF() {
     // expects this file to be publicly served (typically put in /public/data/data_dict.pdf)
-    const url = "/data/data_dict.pdf";
+    const url = "base+/data/data_dict.pdf";
     const fileName = "ME-NEXUS Documentation.pdf";
     try {
       const res = await fetch(url);
@@ -2376,3 +2377,4 @@ export default function OrganizationsSearch() {
     </div>
   );
 }
+
