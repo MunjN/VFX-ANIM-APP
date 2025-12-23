@@ -711,7 +711,7 @@ export default function OrganizationsSearch() {
 
   async function downloadDataDictPDF() {
     // expects this file to be publicly served (typically put in /public/data/data_dict.pdf)
-    const url = "/data/data_dict.pdf";
+    const url = base+"/data/data_dict.pdf";
     const fileName = "ME-NEXUS Documentation.pdf";
     try {
       const res = await fetch(url);
@@ -2377,6 +2377,7 @@ export default function OrganizationsSearch() {
     </div>
   );
 }
+
 
 
 
