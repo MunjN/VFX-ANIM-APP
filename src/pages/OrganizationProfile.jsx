@@ -10,6 +10,7 @@ const BRAND = {
   border: "#1E2A78",
 };
 
+const base = import.meta.env.VITE_API_BASE;
 const TOKEN_FIELDS = new Set([
   "SERVICES",
   "INFRASTRUCTURE_TOOLS",
@@ -270,7 +271,7 @@ export default function OrganizationProfile() {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch(`/api/orgs/${encodeURIComponent(orgId)}`);
+        const res = await fetch(`${base}/api/orgs/${encodeURIComponent(orgId)}`);
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
           throw new Error(
@@ -750,4 +751,5 @@ export default function OrganizationProfile() {
       </div>
     </div>
   );
+
 }
