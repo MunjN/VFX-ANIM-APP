@@ -1,4 +1,3 @@
-// src/App.jsx
 import React from "react";
 import { HashRouter, Routes, Route, Outlet, useNavigate } from "react-router-dom";
 
@@ -180,3 +179,4 @@ export default function App() {
     </HashRouter>
   );
 }
+
