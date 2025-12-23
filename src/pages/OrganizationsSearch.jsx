@@ -709,28 +709,18 @@ export default function OrganizationsSearch() {
     return Array.from(keys);
   }, [selectedCompare, columnOrder, defaultColumns]);
 
-  async function downloadDataDictPDF() {
-    // expects this file to be publicly served (typically put in /public/data/data_dict.pdf)
-    const url = "https://c78ehaqlfg.execute-api.us-east-1.amazonaws.com/data/data_dict.pdf";
-    const fileName = "ME-NEXUS Documentation.pdf";
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Failed to fetch PDF (${res.status})`);
-      const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = objectUrl;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 600);
-    } catch (e) {
-      console.error(e);
-      // fallback: open it (still useful)
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
-  }
+ function downloadDataDictPDF() {
+  const url = "https://c78ehaqlfg.execute-api.us-east-1.amazonaws.com/data/data_dict.pdf";
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "ME-NEXUS Documentation.pdf";
+  a.target = "_blank"; // optional, but improves reliability
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 
   return (
     <div
@@ -2377,6 +2367,7 @@ export default function OrganizationsSearch() {
     </div>
   );
 }
+
 
 
 
