@@ -8,6 +8,7 @@ const BRAND = {
   text: "#111827",
   border: "#1E2A78",
 };
+const base = import.meta.env.VITE_API_BASE;
 
 const PAGE = {
   max: 1280,
@@ -618,7 +619,7 @@ export default function ContentTypes() {
     setCountsLoading(true);
     setCountsError("");
     try {
-      const res = await fetch("/api/orgs/content-types/counts");
+      const res = await fetch(base+"/api/orgs/content-types/counts");
       if (!res.ok) {
         throw new Error(`Counts endpoint not ready (${res.status})`);
       }
@@ -1559,3 +1560,4 @@ export default function ContentTypes() {
     </div>
   );
 }
+
