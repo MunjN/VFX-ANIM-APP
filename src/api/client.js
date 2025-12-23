@@ -2,7 +2,7 @@
 // Centralized API client for API Gateway
 // Reads auth token from sessionStorage (persists across refresh, cleared on tab close)
 
-const API_BASE = import.meta.env.VITE_API_BASE;
+const API_BASE = "https://c78ehaqlfg.execute-api.us-east-1.amazonaws.com";
 
 function getAuthHeaders() {
   try {
