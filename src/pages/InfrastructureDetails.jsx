@@ -6,6 +6,7 @@ const BRAND = {
   bg: "#F7FBFE",
   text: "#111827",
 };
+const base = import.meta.env.VITE_API_BASE;
 
 function PillButton({ active, children, onClick, title, right }) {
   return (
@@ -124,7 +125,7 @@ export default function InfrastructureDetails() {
       setLoading(true);
       setError("");
       try {
-        const res = await fetch(`/api/infra/${encodeURIComponent(infraParam)}`);
+        const res = await fetch(`${base}/api/infra/${encodeURIComponent(infraParam)}`);
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
           throw new Error(j?.error || `Failed to load infrastructure (${res.status})`);
