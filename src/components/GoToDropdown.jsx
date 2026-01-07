@@ -12,6 +12,7 @@ export default function GoToDropdown({ label = "Go to" }) {
 
   const items = useMemo(
     () => [
+      { label: "Insights", to: "/participants/organizations/insights/orgs", icon: "✨" },
       { label: "Services", to: "/participants/organizations/services", icon: "🧰" },
       { label: "Content Types", to: "/participants/organizations/content-types", icon: "🎬" },
       { label: "Functional Types", to: "/participants/organizations/functional-types", icon: "🧩" },
