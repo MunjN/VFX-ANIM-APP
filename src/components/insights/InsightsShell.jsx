@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, NavLink } from "react-router-dom";
 import { INSIGHTS_BRAND as BRAND } from "./theme";
 
 /**
@@ -61,13 +61,17 @@ function Pill({ children }) {
 export default function InsightsShell({ title, subtitle, active, children }) {
   const navigate = useNavigate();
 
+  // IMPORTANT:
+  // - Use absolute app paths (start with "/") so they work anywhere.
+  // - Use <NavLink> (React Router) instead of <a href> to keep HashRouter happy
+  //   and avoid hard reloads / server 404s on deep links.
   const tabs = [
-    { key: "orgs", label: "Orgs", href: "./participants/organizations/insights/orgs" },
-    { key: "infras", label: "Infras", href: "./participants/organizations/insights/infras" },
-    { key: "locations", label: "Locations", href: "./participants/organizations/insights/locations" },
-    { key: "content", label: "Content Types", href: "./participants/organizations/insights/content-types" },
-    { key: "services", label: "Services", href: "./participants/organizations/insights/services" },
-    { key: "custom_data", label: "Custom ME-DMZ Data", href: "./participants/organizations/insights/custom-medmz-data" },
+    { key: "orgs", label: "Orgs", to: "/participants/organizations/insights/orgs" },
+    { key: "infras", label: "Infras", to: "/participants/organizations/insights/infras" },
+    { key: "locations", label: "Locations", to: "/participants/organizations/insights/locations" },
+    { key: "content", label: "Content Types", to: "/participants/organizations/insights/content-types" },
+    { key: "services", label: "Services", to: "/participants/organizations/insights/services" },
+    { key: "custom_data", label: "Custom ME-DMZ Data", to: "/participants/organizations/insights/custom-medmz-data" },
   ];
 
   return (
@@ -194,9 +198,9 @@ export default function InsightsShell({ title, subtitle, active, children }) {
           {tabs.map((t) => {
             const isActive = active === t.key;
             return (
-              <a
+              <NavLink
                 key={t.key}
-                href={t.href}
+                to={t.to}
                 style={{
                   padding: "10px 14px",
                   borderRadius: 999,
@@ -209,7 +213,7 @@ export default function InsightsShell({ title, subtitle, active, children }) {
                 }}
               >
                 {t.label}
-              </a>
+              </NavLink>
             );
           })}
         </div>
