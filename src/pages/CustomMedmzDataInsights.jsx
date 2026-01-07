@@ -13,6 +13,8 @@ function safeStr(x) {
   return String(x ?? "").trim();
 }
 
+const base = import.meta.env.VITE_API_BASE;
+
 function SegmentedToggle({ value, options, onChange }) {
   return (
     <div
@@ -88,7 +90,7 @@ export default function MEDMZCustomInsights() {
     let alive = true;
     setLoading(true);
 
-    fetch("/api/custom-insights/decks")
+    fetch(base+"/api/custom-insights/decks")
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
@@ -301,3 +303,4 @@ export default function MEDMZCustomInsights() {
     </InsightsShell>
   );
 }
+
