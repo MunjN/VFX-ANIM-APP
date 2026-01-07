@@ -13,6 +13,8 @@ import InsightsShell from "../components/insights/InsightsShell";
 import { Card, CardGrid, StatCard, Pill, Divider, TwoCol } from "../components/insights/Cards";
 import BarChart from "../components/insights/BarChart";
 
+const base = import.meta.env.VITE_API_BASE;
+
 function fmtPct(x) {
   const n = Number(x);
   if (!Number.isFinite(n)) return "0%";
@@ -339,7 +341,7 @@ export default function ContentTypeInsights() {
   useEffect(() => {
     let alive = true;
 
-    fetch("/api/insights/content")
+    fetch(base+"/api/insights/content")
       .then(async (r) => {
         const text = await r.text();
         if (!r.ok) throw new Error(text || `Request failed: ${r.status}`);
