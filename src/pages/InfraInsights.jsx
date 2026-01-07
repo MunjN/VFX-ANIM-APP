@@ -14,6 +14,8 @@ import InsightsShell from "../components/insights/InsightsShell";
 import { Card, CardGrid, StatCard, Pill, Divider, TwoCol } from "../components/insights/Cards";
 import BarChart from "../components/insights/BarChart";
 
+const base = import.meta.env.VITE_API_BASE;
+
 // ----------------------- helpers -----------------------
 function fmtPct0(x) {
   const n = Number(x);
@@ -440,7 +442,7 @@ export default function InfraInsights() {
   useEffect(() => {
     let alive = true;
 
-    fetch("/api/insights/infra")
+    fetch(base+"/api/insights/infra")
       .then(async (r) => {
         const text = await r.text();
         if (!r.ok) throw new Error(text || `Request failed: ${r.status}`);
