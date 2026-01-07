@@ -24,6 +24,7 @@ export default function PaginatedOrgTable({ baseFilters = {}, title = "Organizat
   const [resp, setResp] = useState({ data: [], total: 0 });
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil((resp.total || 0) / pageSize)), [resp.total, pageSize]);
+  const API_BASE = import.meta.env.VITE_API_BASE;
 
   const defaultColumns = useMemo(
     () => [
@@ -70,7 +71,7 @@ export default function PaginatedOrgTable({ baseFilters = {}, title = "Organizat
       params.set(k, String(v));
     });
 
-    fetch(`/api/orgs?${params.toString()}`)
+    fetch(`${API_BASE}/api/orgs?${params.toString()}`)
       .then((r) => r.json())
       .then((d) => setResp(d))
       .catch(() => setResp({ data: [], total: 0 }));
