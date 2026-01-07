@@ -1,116 +1,3 @@
-// import React from "react";
-// import { INSIGHTS_BRAND as BRAND } from "./theme";
-
-// /**
-//  * InsightsShell
-//  * Wrapper for all Insights pages.
-//  *
-//  * FIX:
-//  * - Removed dependency on non-existent `INSIGHTS_PAGE`
-//  * - Uses INSIGHTS_BRAND only (single source of truth)
-//  */
-
-// export default function InsightsShell({
-//   title,
-//   subtitle,
-//   active,
-//   children,
-// }) {
-//   const tabs = [
-//     { key: "orgs", label: "Orgs", href: "/participants/organizations/insights/orgs" },
-//     { key: "infras", label: "Infras", href: "/participants/organizations/insights/infras" },
-//     { key: "locations", label: "Locations", href: "/participants/organizations/insights/locations" },
-//     { key: "content", label: "Content Types", href: "/participants/organizations/insights/content-types" },
-//     { key: "services", label: "Services", href: "/participants/organizations/insights/services" },
-//     { key: "custom_data", label: "Custom ME-DMZ Data", href: "/participants/organizations/insights/custom-medmz-data" },
-//   ];
-
-//   return (
-//     <div
-//       style={{
-//         background: BRAND.bg,
-//         minHeight: "100vh",
-//         padding: "28px 28px 60px",
-//       }}
-//     >
-//       {/* Header */}
-//       <div style={{ maxWidth: 1400, margin: "0 auto" }}>
-//         <div style={{ marginBottom: 18 }}>
-//           <div
-//             style={{
-//               fontSize: 34,
-//               fontWeight: 950,
-//               letterSpacing: "-0.02em",
-//               color: BRAND.text,
-//             }}
-//           >
-//             {title}
-//           </div>
-//           {subtitle ? (
-//             <div
-//               style={{
-//                 marginTop: 6,
-//                 fontSize: 14,
-//                 fontWeight: 800,
-//                 color: BRAND.text,
-//                 opacity: 0.8,
-//               }}
-//             >
-//               {subtitle}
-//             </div>
-//           ) : null}
-//         </div>
-
-//         {/* Tabs */}
-//         <div
-//           style={{
-//             display: "flex",
-//             gap: 10,
-//             flexWrap: "wrap",
-//             marginBottom: 22,
-//           }}
-//         >
-//           {tabs.map((t) => {
-//             const isActive = active === t.key;
-//             return (
-//               <a
-//                 key={t.key}
-//                 href={t.href}
-//                 style={{
-//                   padding: "10px 14px",
-//                   borderRadius: 999,
-//                   fontWeight: 950,
-//                   fontSize: 13,
-//                   textDecoration: "none",
-//                   color: isActive ? BRAND.ink : BRAND.text,
-//                   background: isActive
-//                     ? "rgba(60,130,255,0.16)"
-//                     : "rgba(255,255,255,0.7)",
-//                   border: `1px solid ${
-//                     isActive ? "rgba(60,130,255,0.30)" : BRAND.border
-//                   }`,
-//                 }}
-//               >
-//                 {t.label}
-//               </a>
-//             );
-//           })}
-//         </div>
-
-//         {/* Content */}
-//         <div
-//           style={{
-//             display: "grid",
-//             gap: 18,
-//           }}
-//         >
-//           {children}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { INSIGHTS_BRAND as BRAND } from "./theme";
@@ -175,12 +62,12 @@ export default function InsightsShell({ title, subtitle, active, children }) {
   const navigate = useNavigate();
 
   const tabs = [
-    { key: "orgs", label: "Orgs", href: "/participants/organizations/insights/orgs" },
-    { key: "infras", label: "Infras", href: "/participants/organizations/insights/infras" },
-    { key: "locations", label: "Locations", href: "/participants/organizations/insights/locations" },
-    { key: "content", label: "Content Types", href: "/participants/organizations/insights/content-types" },
-    { key: "services", label: "Services", href: "/participants/organizations/insights/services" },
-    { key: "custom_data", label: "Custom ME-DMZ Data", href: "/participants/organizations/insights/custom-medmz-data" },
+    { key: "orgs", label: "Orgs", href: "./participants/organizations/insights/orgs" },
+    { key: "infras", label: "Infras", href: "./participants/organizations/insights/infras" },
+    { key: "locations", label: "Locations", href: "./participants/organizations/insights/locations" },
+    { key: "content", label: "Content Types", href: "./participants/organizations/insights/content-types" },
+    { key: "services", label: "Services", href: "./participants/organizations/insights/services" },
+    { key: "custom_data", label: "Custom ME-DMZ Data", href: "./participants/organizations/insights/custom-medmz-data" },
   ];
 
   return (
