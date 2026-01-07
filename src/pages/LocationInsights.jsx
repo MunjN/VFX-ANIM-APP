@@ -13,6 +13,8 @@ import BarChart from "../components/insights/BarChart";
 import DonutChart from "../components/insights/DonutChart";
 import PaginatedOrgTable from "../components/insights/PaginatedOrgTable";
 
+const base = import.meta.env.VITE_API_BASE;
+
 // -------------------- helpers --------------------
 const ICONS = {
   globe: "🌍",
@@ -197,7 +199,7 @@ export default function LocationInsights() {
   useEffect(() => {
     let alive = true;
 
-    fetch("/api/insights/locations")
+    fetch(base+"/api/insights/locations")
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         return r.json();
