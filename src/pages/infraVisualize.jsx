@@ -1,22 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-/**
- * Infra Visualize
- * - Aggregates from /api/infra (respects same filters UI as Infrastructure.jsx)
- * - Filter options from /api/infra/filters
- * - Orgs connectivity:
- *   - "View orgs (selected)" and "View orgs (filtered)" navigate to /participants/organizations?INFRASTRUCTURE_TOOLS=...
- *   - Optional preview modal is kept
- *
- * Changes requested:
- * ✅ Add Functional Types bar chart
- * ✅ Services chart gets its own space and has a switch view (Services <-> Functional Types)
- * ✅ Licenses donut gets its own full-width card (not congested)
- * ✅ Selected infra section becomes full table of selected infra with all features
- * ✅ Filters look exactly like Infrastructure Search (copied modal UI style + year min/max)
- */
-
 const BRAND = {
   bg: "#F6F8FF",
   card: "rgba(255,255,255,0.78)",
@@ -34,10 +18,9 @@ const BRAND = {
 };
 
 const TOKEN_FIELDS = new Set(["INFRA_RELATED_SERVICES", "INFRA_RELATED_CONTENT_TYPES"]);
-
-// Exclude ID columns in selected infra table (match search)
-const EXCLUDED_TABLE_FIELDS = new Set(["ME_NEXUS_INFRA_ID", "ME-NEXUS_INFRA_ID", "Id", "ID", "id"]);
 const base = import.meta.env.VITE_API_BASE;
+
+const EXCLUDED_TABLE_FIELDS = new Set(["ME_NEXUS_INFRA_ID", "ME-NEXUS_INFRA_ID", "Id", "ID", "id"]);
 
 const FIELD_LABELS = {
   INFRA_NAME: "Infrastructure",
@@ -411,15 +394,7 @@ function ClickDonut({ data, pickedLabel, onPick, height = 360 }) {
   const cy = size / 2;
   const circ = 2 * Math.PI * r;
 
-  const palette = [
-    "rgba(60,130,255,0.95)",
-    "rgba(30,42,120,0.85)",
-    "rgba(125,211,252,0.85)",
-    "rgba(99,102,241,0.78)",
-    "rgba(59,130,246,0.62)",
-    "rgba(147,197,253,0.62)",
-    "rgba(96,165,250,0.55)",
-  ];
+  const palette = ["rgba(60,130,255,0.95)", "rgba(30,42,120,0.85)", "rgba(125,211,252,0.85)", "rgba(99,102,241,0.78)", "rgba(59,130,246,0.62)", "rgba(147,197,253,0.62)", "rgba(96,165,250,0.55)"];
 
   const segs = useMemo(() => {
     if (!rows.length || total <= 0) return [];
@@ -431,14 +406,7 @@ function ClickDonut({ data, pickedLabel, onPick, height = 360 }) {
       const dasharray = `${len} ${circ - len}`;
       const dashoffset = -acc;
       acc += len;
-      return {
-        label: String(d.label ?? ""),
-        value: v,
-        frac,
-        dasharray,
-        dashoffset,
-        color: palette[idx % palette.length],
-      };
+      return { label: String(d.label ?? ""), value: v, frac, dasharray, dashoffset, color: palette[idx % palette.length] };
     });
   }, [rows, total, circ]);
 
@@ -682,18 +650,21 @@ export default function InfraVisualize() {
   const [draftSelected, setDraftSelected] = useState({});
   const [filterSearch, setFilterSearch] = useState({}); // exact same as Infrastructure.jsx
 
-  // selection from charts
+  // selection from visuals
   const [pickedService, setPickedService] = useState(null);
   const [pickedFunctional, setPickedFunctional] = useState(null);
+  const [pickedStructural, setPickedStructural] = useState(null);
   const [pickedContentType, setPickedContentType] = useState(null);
   const [pickedApi, setPickedApi] = useState(null);
   const [pickedLicense, setPickedLicense] = useState(null);
   const [pickedYear, setPickedYear] = useState(null);
+  const [pickedParentOrg, setPickedParentOrg] = useState(null);
+  const [pickedActive, setPickedActive] = useState(null); // "Active" | "Inactive"
 
   // services chart switch view
   const [servicesView, setServicesView] = useState("services"); // "services" | "functional"
 
-  // tool selection set
+  // tool selection set derived from clicking visuals
   const [selectedInfra, setSelectedInfra] = useState(() => new Set());
 
   // org modal preview (kept)
@@ -741,7 +712,7 @@ export default function InfraVisualize() {
     };
   }, []);
 
-  // Fetch infra rows (filtered)
+  // Fetch infra rows (filtered by UI filters)
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -785,83 +756,17 @@ export default function InfraVisualize() {
 
   const filteredInfraNames = useMemo(() => infraRows.map((r) => String(r?.INFRA_NAME || "")).filter(Boolean), [infraRows]);
 
-  const kpis = useMemo(() => {
-    const infraCount = filteredInfraNames.length;
-    const parents = uniq(infraRows.map((r) => String(r?.INFRA_PARENT_ORGANIZATION || "").trim()).filter(Boolean));
-    return { infraCount, parentOrgCount: parents.length };
-  }, [infraRows, filteredInfraNames]);
-
-  const agg = useMemo(() => {
-    const serviceCounts = new Map();
-    const functionalCounts = new Map();
-    const ctCounts = new Map();
-    const yearCounts = new Map();
-    const apiCounts = { "Has API": 0, "No API": 0 };
-    const licenseCounts = new Map();
-
-    const addCount = (map, key, inc = 1) => {
-      if (!key) return;
-      map.set(key, (map.get(key) || 0) + inc);
-    };
-
-    for (const row of infraRows) {
-      // services (token list)
-      for (const s of splitTokens(row?.INFRA_RELATED_SERVICES)) addCount(serviceCounts, s);
-
-      // content types (token list)
-      for (const c of splitTokens(row?.INFRA_RELATED_CONTENT_TYPES)) addCount(ctCounts, c);
-
-      // functional types (may be single or comma list)
-      const fts = splitTokens(row?.INFRA_FUNCTIONAL_TYPE);
-      if (fts.length) fts.forEach((f) => addCount(functionalCounts, f));
-      else addCount(functionalCounts, String(row?.INFRA_FUNCTIONAL_TYPE || "").trim() || "Unknown");
-
-      // year
-      const y = yearFromReleaseDate(row?.INFRA_RELEASE_DATE);
-      if (y != null) addCount(yearCounts, String(y));
-
-      // api
-      const b = normalizeBool(row?.INFRA_HAS_API);
-      if (b === true) apiCounts["Has API"] += 1;
-      else if (b === false) apiCounts["No API"] += 1;
-
-      // license
-      addCount(licenseCounts, normalizeLicense(row?.INFRA_LICENSE));
-    }
-
-    const toRows = (map) =>
-      Array.from(map.entries())
-        .map(([label, value]) => ({ label, value }))
-        .sort((a, b) => b.value - a.value);
-
-    const yearsSorted = Array.from(yearCounts.entries())
-      .map(([k, v]) => [Number(k), v])
-      .filter(([y]) => Number.isFinite(y))
-      .sort((a, b) => a[0] - b[0]);
-
-    const yearBuckets = {};
-    for (const [y, v] of yearsSorted) yearBuckets[y] = v;
-
-    return {
-      services: toRows(serviceCounts),
-      functionalTypes: toRows(functionalCounts),
-      contentTypes: toRows(ctCounts),
-      api: [
-        { label: "Has API", value: apiCounts["Has API"] },
-        { label: "No API", value: apiCounts["No API"] },
-      ].filter((d) => d.value > 0),
-      licenses: toRows(licenseCounts),
-      yearBuckets,
-    };
-  }, [infraRows]);
-
+  // ===== Selection logic (PowerBI-style crossfilter)
   const clearSelectionTray = useCallback(() => {
     setPickedService(null);
     setPickedFunctional(null);
+    setPickedStructural(null);
     setPickedContentType(null);
     setPickedApi(null);
     setPickedLicense(null);
     setPickedYear(null);
+    setPickedParentOrg(null);
+    setPickedActive(null);
     setSelectedInfra(new Set());
   }, []);
 
@@ -881,9 +786,22 @@ export default function InfraVisualize() {
           const tokens = splitTokens(row?.INFRA_RELATED_CONTENT_TYPES);
           if (tokens.includes(value)) set.add(name);
         } else if (type === "functional") {
-          const tokens = splitTokens(row?.INFRA_FUNCTIONAL_TYPE);
-          const has = tokens.length ? tokens.includes(value) : String(row?.INFRA_FUNCTIONAL_TYPE || "").trim() === value;
+          const rawFT = String(row?.INFRA_FUNCTIONAL_TYPE ?? "").trim();
+          const tokens = splitTokens(rawFT);
+          const has = tokens.length ? tokens.includes(value) : rawFT === value;
           if (has) set.add(name);
+        } else if (type === "structural") {
+          const rawST = String(row?.INFRA_STRUCTURAL_TYPE ?? "").trim();
+          const tokens = splitTokens(rawST);
+          const has = tokens.length ? tokens.includes(value) : rawST === value;
+          if (has) set.add(name);
+        } else if (type === "parentOrg") {
+          const po = String(row?.INFRA_PARENT_ORGANIZATION || "").trim() || "Unknown";
+          if (po === value) set.add(name);
+        } else if (type === "active") {
+          const b = normalizeBool(row?.INFRA_IS_ACTIVE);
+          if (value === "Active" && b === true) set.add(name);
+          if (value === "Inactive" && b === false) set.add(name);
         } else if (type === "api") {
           const b = normalizeBool(row?.INFRA_HAS_API);
           if (value === "Has API" && b === true) set.add(name);
@@ -907,44 +825,208 @@ export default function InfraVisualize() {
       const isSame =
         (type === "service" && pickedService === value) ||
         (type === "functional" && pickedFunctional === value) ||
+        (type === "structural" && pickedStructural === value) ||
         (type === "contentType" && pickedContentType === value) ||
         (type === "api" && pickedApi === value) ||
         (type === "license" && pickedLicense === value) ||
-        (type === "year" && pickedYear === value);
+        (type === "year" && pickedYear === value) ||
+        (type === "parentOrg" && pickedParentOrg === value) ||
+        (type === "active" && pickedActive === value);
 
       if (isSame) {
-        if (type === "service") setPickedService(null);
-        if (type === "functional") setPickedFunctional(null);
-        if (type === "contentType") setPickedContentType(null);
-        if (type === "api") setPickedApi(null);
-        if (type === "license") setPickedLicense(null);
-        if (type === "year") setPickedYear(null);
-        setSelectedInfra(new Set());
+        clearSelectionTray();
+        return;
+      }
+
+      // ✅ Don't allow picking Unknown parent org
+      if (type === "parentOrg" && (value == null || String(value).trim() === "" || String(value).trim() === "Unknown")) {
         return;
       }
 
       // set pick
       if (type === "service") setPickedService(value);
       if (type === "functional") setPickedFunctional(value);
+      if (type === "structural") setPickedStructural(value);
       if (type === "contentType") setPickedContentType(value);
       if (type === "api") setPickedApi(value);
       if (type === "license") setPickedLicense(value);
       if (type === "year") setPickedYear(value);
+      if (type === "parentOrg") setPickedParentOrg(value);
+      if (type === "active") setPickedActive(value);
 
-      // clear others for a snappy single-selection mental model
+      // clear others (single selection mental model)
       if (type !== "service") setPickedService(null);
       if (type !== "functional") setPickedFunctional(null);
+      if (type !== "structural") setPickedStructural(null);
       if (type !== "contentType") setPickedContentType(null);
       if (type !== "api") setPickedApi(null);
       if (type !== "license") setPickedLicense(null);
       if (type !== "year") setPickedYear(null);
+      if (type !== "parentOrg") setPickedParentOrg(null);
+      if (type !== "active") setPickedActive(null);
 
       setSelectedInfra(deriveToolSelection({ type, value }));
     },
-    [pickedService, pickedFunctional, pickedContentType, pickedApi, pickedLicense, pickedYear, deriveToolSelection]
+    [
+      pickedService,
+      pickedFunctional,
+      pickedStructural,
+      pickedContentType,
+      pickedApi,
+      pickedLicense,
+      pickedYear,
+      pickedParentOrg,
+      pickedActive,
+      deriveToolSelection,
+      clearSelectionTray,
+    ]
   );
 
+  // If UI filters/search/year change, ensure chart-derived selection can't go stale
+  useEffect(() => {
+    setSelectedInfra((prev) => {
+      if (!prev || prev.size === 0) return prev;
+      const allowed = new Set(infraRows.map((r) => String(r?.INFRA_NAME || "").trim()).filter(Boolean));
+      const next = new Set();
+      for (const n of prev) if (allowed.has(n)) next.add(n);
+      if (next.size === prev.size) return prev;
+      // if selection collapses to empty, clear picks too
+      if (next.size === 0) {
+        setPickedService(null);
+        setPickedFunctional(null);
+        setPickedStructural(null);
+        setPickedContentType(null);
+        setPickedApi(null);
+        setPickedLicense(null);
+        setPickedYear(null);
+        setPickedParentOrg(null);
+        setPickedActive(null);
+      }
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [infraRows]);
+
   const selectionCount = selectedInfra.size;
+
+  // Selected infra rows (based on current infraRows + selectedInfra set)
+  const selectedInfraRows = useMemo(() => {
+    if (!selectedInfra.size) return [];
+    const set = selectedInfra;
+    return infraRows.filter((r) => set.has(String(r?.INFRA_NAME || "").trim()));
+  }, [infraRows, selectedInfra]);
+
+  // Scope rows for aggregations:
+  // - if a visual selection exists => scope = selectedInfraRows (crossfilters other visuals)
+  // - else => scope = infraRows (UI filtered)
+  const scopeRows = useMemo(() => {
+    if (selectionCount > 0) return selectedInfraRows;
+    return infraRows;
+  }, [infraRows, selectionCount, selectedInfraRows]);
+
+  // KPI should crossfilter too
+  const kpis = useMemo(() => {
+    const names = scopeRows.map((r) => String(r?.INFRA_NAME || "")).filter(Boolean);
+    const infraCount = names.length;
+    const parents = uniq(scopeRows.map((r) => String(r?.INFRA_PARENT_ORGANIZATION || "").trim()).filter(Boolean));
+    return { infraCount, parentOrgCount: parents.length };
+  }, [scopeRows]);
+
+  // Aggregations driven by scopeRows
+  const agg = useMemo(() => {
+    const serviceCounts = new Map();
+    const functionalCounts = new Map();
+    const structuralCounts = new Map();
+    const parentCounts = new Map();
+    const ctCounts = new Map();
+    const yearCounts = new Map();
+    const apiCounts = { "Has API": 0, "No API": 0 };
+    const licenseCounts = new Map();
+    const activeCounts = { Active: 0, Inactive: 0 };
+
+    const addCount = (map, key, inc = 1) => {
+      if (!key) return;
+      map.set(key, (map.get(key) || 0) + inc);
+    };
+
+    for (const row of scopeRows) {
+      // services (token list)
+      for (const s of splitTokens(row?.INFRA_RELATED_SERVICES)) addCount(serviceCounts, s);
+
+      // content types (token list)
+      for (const c of splitTokens(row?.INFRA_RELATED_CONTENT_TYPES)) addCount(ctCounts, c);
+
+      // functional types (single or comma list)
+      {
+        const rawFT = String(row?.INFRA_FUNCTIONAL_TYPE ?? "").trim();
+        const fts = splitTokens(rawFT);
+        if (fts.length) fts.forEach((f) => addCount(functionalCounts, f));
+        else addCount(functionalCounts, rawFT || "Unknown");
+      }
+
+      // structural types (single or comma list)
+      {
+        const rawST = String(row?.INFRA_STRUCTURAL_TYPE ?? "").trim();
+        const sts = splitTokens(rawST);
+        if (sts.length) sts.forEach((s) => addCount(structuralCounts, s));
+        else addCount(structuralCounts, rawST || "Unknown");
+      }
+
+      // parent org
+      addCount(parentCounts, String(row?.INFRA_PARENT_ORGANIZATION || "").trim() || "Unknown");
+
+      // year
+      const y = yearFromReleaseDate(row?.INFRA_RELEASE_DATE);
+      if (y != null) addCount(yearCounts, String(y));
+
+      // api
+      const bApi = normalizeBool(row?.INFRA_HAS_API);
+      if (bApi === true) apiCounts["Has API"] += 1;
+      else if (bApi === false) apiCounts["No API"] += 1;
+
+      // active
+      const bActive = normalizeBool(row?.INFRA_IS_ACTIVE);
+      if (bActive === true) activeCounts.Active += 1;
+      else if (bActive === false) activeCounts.Inactive += 1;
+
+      // license
+      addCount(licenseCounts, normalizeLicense(row?.INFRA_LICENSE));
+    }
+
+    const toRows = (map) =>
+      Array.from(map.entries())
+        .map(([label, value]) => ({ label, value }))
+        .sort((a, b) => b.value - a.value);
+
+    const yearsSorted = Array.from(yearCounts.entries())
+      .map(([k, v]) => [Number(k), v])
+      .filter(([y]) => Number.isFinite(y))
+      .sort((a, b) => a[0] - b[0]);
+
+    const yearBuckets = {};
+    for (const [y, v] of yearsSorted) yearBuckets[y] = v;
+
+    return {
+      services: toRows(serviceCounts),
+      functionalTypes: toRows(functionalCounts),
+      structuralTypes: toRows(structuralCounts),
+
+      // ✅ Remove Unknown from parent org visual options
+      parentOrgs: toRows(parentCounts).filter((d) => d.label !== "Unknown"),
+
+      contentTypes: toRows(ctCounts),
+      api: [
+        { label: "Has API", value: apiCounts["Has API"] },
+        { label: "No API", value: apiCounts["No API"] },
+      ].filter((d) => d.value > 0),
+      active: [
+        { label: "Active", value: activeCounts.Active },
+        { label: "Inactive", value: activeCounts.Inactive },
+      ].filter((d) => d.value > 0),
+      licenses: toRows(licenseCounts),
+      yearBuckets,
+    };
+  }, [scopeRows]);
 
   const visibleFilterChips = useMemo(() => {
     const chips = [];
@@ -954,8 +1036,9 @@ export default function InfraVisualize() {
     }
     if (yearMin || yearMax) chips.push(`Release year: ${yearMin || "…"}–${yearMax || "…"}`);
     if (debouncedQ) chips.push(`Search: “${debouncedQ}”`);
+    if (selectionCount > 0) chips.push(`Visual selection: 1`);
     return chips;
-  }, [selected, yearMin, yearMax, debouncedQ]);
+  }, [selected, yearMin, yearMax, debouncedQ, selectionCount]);
 
   const openFilters = useCallback(() => {
     const copy = {};
@@ -970,12 +1053,14 @@ export default function InfraVisualize() {
     setFilterSearch({});
     setYearMin("");
     setYearMax("");
-  }, []);
+    clearSelectionTray();
+  }, [clearSelectionTray]);
 
   const applyFilters = useCallback(() => {
     setSelected(draftSelected || {});
     setFiltersOpen(false);
-  }, [draftSelected]);
+    clearSelectionTray();
+  }, [draftSelected, clearSelectionTray]);
 
   const goBackToSearch = useCallback(() => {
     const params = new URLSearchParams();
@@ -1087,7 +1172,7 @@ export default function InfraVisualize() {
     return keys;
   }, [filterOptions]);
 
-  // ===== Selected infra table (full features) =====
+  // ===== Infra table (shows selected tools if visual clicked; otherwise shows filtered tools)
   const PREFERRED_ORDER = useMemo(
     () => [
       "INFRA_NAME",
@@ -1107,17 +1192,14 @@ export default function InfraVisualize() {
     []
   );
 
-  const selectedInfraRows = useMemo(() => {
-    if (!selectedInfra.size) return [];
-    const set = selectedInfra;
-    return infraRows.filter((r) => set.has(String(r?.INFRA_NAME || "").trim()));
-  }, [infraRows, selectedInfra]);
+  const tableRows = useMemo(() => {
+    if (selectionCount > 0) return selectedInfraRows;
+    return infraRows;
+  }, [selectionCount, selectedInfraRows, infraRows]);
 
   const selectedTableColumns = useMemo(() => {
-    const firstRow = selectedInfraRows?.[0];
-    const keys = firstRow
-      ? Object.keys(firstRow).filter((k) => !EXCLUDED_TABLE_FIELDS.has(k))
-      : PREFERRED_ORDER.filter((k) => k !== "ME_NEXUS_INFRA_ID");
+    const firstRow = tableRows?.[0];
+    const keys = firstRow ? Object.keys(firstRow).filter((k) => !EXCLUDED_TABLE_FIELDS.has(k)) : PREFERRED_ORDER.filter((k) => k !== "ME_NEXUS_INFRA_ID");
 
     const keySet = new Set(keys);
     const preferred = PREFERRED_ORDER.filter((k) => keySet.has(k));
@@ -1125,7 +1207,7 @@ export default function InfraVisualize() {
     const ordered = [...preferred, ...rest].filter(Boolean);
 
     return ordered.map((k) => ({ key: k, label: toPrettyLabel(k) }));
-  }, [selectedInfraRows, PREFERRED_ORDER]);
+  }, [tableRows, PREFERRED_ORDER]);
 
   const isTruthy = (v) => {
     if (v === true) return true;
@@ -1182,6 +1264,43 @@ export default function InfraVisualize() {
     );
   };
 
+  // ✅ Bottom table pagination (+ UX polish)
+  const [tablePage, setTablePage] = useState(1);
+  const [tablePageSize, setTablePageSize] = useState(25);
+  const [tableJump, setTableJump] = useState("1");
+
+  const tableTotal = tableRows.length;
+
+  const tableTotalPages = useMemo(() => Math.max(1, Math.ceil(tableTotal / tablePageSize)), [tableTotal, tablePageSize]);
+
+  useEffect(() => {
+    // reset page when dataset changes
+    setTablePage(1);
+    setTableJump("1");
+  }, [selectionCount, infraRows, selectedInfraRows]);
+
+  useEffect(() => {
+    // clamp page if pageSize changes or rows shrink
+    setTablePage((p) => clamp(p, 1, tableTotalPages));
+  }, [tableTotalPages]);
+
+  useEffect(() => {
+    setTableJump(String(tablePage));
+  }, [tablePage]);
+
+  const pagedTableRows = useMemo(() => {
+    const start = (tablePage - 1) * tablePageSize;
+    return tableRows.slice(start, start + tablePageSize);
+  }, [tableRows, tablePage, tablePageSize]);
+
+  const applyJump = useCallback(() => {
+    const raw = String(tableJump || "").trim();
+    const n = Number(raw);
+    if (!Number.isFinite(n)) return;
+    const target = clamp(Math.floor(n), 1, tableTotalPages);
+    setTablePage(target);
+  }, [tableJump, tableTotalPages]);
+
   // ===== UI =====
   return (
     <div style={{ minHeight: "100vh", background: BRAND.bg, color: BRAND.text }}>
@@ -1209,7 +1328,9 @@ export default function InfraVisualize() {
 
             <div style={{ marginTop: 10 }}>
               <div style={{ fontSize: 40, fontWeight: 1000, color: BRAND.ink, letterSpacing: -0.6, lineHeight: 1 }}>Infrastructure ISV</div>
-              <div style={{ marginTop: 6, fontWeight: 900, opacity: 0.72 }}>Infrastructure Overview</div>
+              <div style={{ marginTop: 6, fontWeight: 900, opacity: 0.72 }}>
+                {selectionCount > 0 ? "Crossfiltered View (by selected visual)" : "Infrastructure Overview"}
+              </div>
             </div>
           </div>
 
@@ -1260,7 +1381,7 @@ export default function InfraVisualize() {
             <Button onClick={openFilters} disabled={filtersLoading} title="Filter the infra catalog">
               Filters {visibleFilterChips.length ? `(${visibleFilterChips.length})` : ""}
             </Button>
-            <Button variant="secondary" onClick={clearAllFilters} disabled={Object.keys(selected).length === 0 && !yearMin && !yearMax}>
+            <Button variant="secondary" onClick={clearAllFilters} disabled={Object.keys(selected).length === 0 && !yearMin && !yearMax && !debouncedQ && selectionCount === 0}>
               Clear
             </Button>
           </div>
@@ -1303,16 +1424,20 @@ export default function InfraVisualize() {
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", justifyContent: "center" }}>
-                <Pill active={selectionCount > 0} title="Selection derived from clicking charts">
-                  Selected tools: {selectionCount}
+                <Pill active={selectionCount > 0} title="Selection derived from clicking visuals">
+                  Visual selection: {selectionCount ? "ON" : "OFF"}
                 </Pill>
-                <Button variant="secondary" onClick={clearSelectionTray} disabled={selectionCount === 0} title="Clear chart selection">
+                <Button variant="secondary" onClick={clearSelectionTray} disabled={selectionCount === 0} title="Clear visual selection (show full filtered dataset)">
                   Clear selection
                 </Button>
               </div>
 
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
-                <Button onClick={viewOrgsSelected} disabled={selectionCount === 0} title={selectionCount === 0 ? "Click a bar/segment/year to select tools" : "Open orgs filtered by selected infra"}>
+                <Button
+                  onClick={viewOrgsSelected}
+                  disabled={selectionCount === 0}
+                  title={selectionCount === 0 ? "Click a bar/segment/year to crossfilter (and select tools)" : "Open orgs filtered by selected infra"}
+                >
                   View orgs (selected)
                 </Button>
                 <Button variant="secondary" onClick={viewOrgsFiltered} disabled={filteredInfraNames.length === 0} title="Open orgs for filtered infra (capped at 100)">
@@ -1329,7 +1454,7 @@ export default function InfraVisualize() {
                 </Button>
               </div>
 
-              <div style={{ textAlign: "center", fontWeight: 900, opacity: 0.65 }}>{loading ? "Loading infra…" : `${compact(filteredInfraNames.length)} tools in current view`}</div>
+              <div style={{ textAlign: "center", fontWeight: 900, opacity: 0.65 }}>{loading ? "Loading infra…" : `${compact(filteredInfraNames.length)} tools in current filtered view`}</div>
             </div>
           </Card>
 
@@ -1343,78 +1468,142 @@ export default function InfraVisualize() {
                 <Pill active={servicesView === "functional"} onClick={() => setServicesView("functional")} title="View Functional Types bars">
                   Functional Types
                 </Pill>
-                <Pill title="Click bars to select tools">Click bars</Pill>
+                <Pill title="Click a bar to crossfilter all visuals">Click bars</Pill>
               </div>
             }
           >
             {servicesView === "services" ? (
-              <ClickBarChart
-                rows={agg.services.map((d, i) => ({ ...d, key: `${d.label}__${i}` }))}
-                pickedLabel={pickedService}
-                onPick={(label) => togglePick("service", label)}
-                maxBars={34}
-                height={480}
-              />
+              <ClickBarChart rows={agg.services.map((d, i) => ({ ...d, key: `${d.label}__${i}` }))} pickedLabel={pickedService} onPick={(label) => togglePick("service", label)} maxBars={34} height={480} />
             ) : (
-              <ClickBarChart
-                rows={agg.functionalTypes.map((d, i) => ({ ...d, key: `${d.label}__${i}` }))}
-                pickedLabel={pickedFunctional}
-                onPick={(label) => togglePick("functional", label)}
-                maxBars={28}
-                height={480}
-              />
+              <ClickBarChart rows={agg.functionalTypes.map((d, i) => ({ ...d, key: `${d.label}__${i}` }))} pickedLabel={pickedFunctional} onPick={(label) => togglePick("functional", label)} maxBars={28} height={480} />
             )}
           </Card>
         </div>
 
         {/* Year line */}
         <div style={{ marginTop: 14 }}>
-          <Card title="Tools Launched by Year" right={<Pill title="Click a point to select tools released that year">Click points</Pill>}>
+          <Card title="Tools Launched by Year" right={<Pill title="Click a point to crossfilter all visuals">Click points</Pill>}>
             <ClickYearLine buckets={agg.yearBuckets} pickedYear={pickedYear} onPick={(year) => togglePick("year", year)} height={230} />
           </Card>
         </div>
 
         {/* API + Content Types */}
         <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: 14, alignItems: "stretch" }}>
-          <Card title="Infrastructures with APIs" right={<Pill title="Click a segment to select tools">Click segments</Pill>}>
+          <Card title="Infrastructures with APIs" right={<Pill title="Click a segment to crossfilter all visuals">Click segments</Pill>}>
             <ClickDonut data={agg.api} pickedLabel={pickedApi} onPick={(label) => togglePick("api", label)} height={360} />
           </Card>
 
-          <Card title="Content Types by Count of Infrastructure" right={<Pill title="Click bars to select tools">Click bars</Pill>}>
-            <ClickBarChart
-              rows={agg.contentTypes.map((d, i) => ({ ...d, key: `${d.label}__${i}` }))}
-              pickedLabel={pickedContentType}
-              onPick={(label) => togglePick("contentType", label)}
-              maxBars={16}
-              height={360}
-            />
+          <Card title="Content Types by Count of Infrastructure" right={<Pill title="Click a bar to crossfilter all visuals">Click bars</Pill>}>
+            <ClickBarChart rows={agg.contentTypes.map((d, i) => ({ ...d, key: `${d.label}__${i}` }))} pickedLabel={pickedContentType} onPick={(label) => togglePick("contentType", label)} maxBars={16} height={360} />
           </Card>
         </div>
 
-        {/* Licenses (own space, not congested) */}
+        {/* ✅ Structural (BIG, full width) */}
         <div style={{ marginTop: 14 }}>
-          <Card title="Popular Types of Licenses" right={<Pill title="Click a segment to select tools">Click segments</Pill>}>
+          <Card title="Structural Types by Count of Infrastructure" right={<Pill title="Click a bar to crossfilter all visuals">Click bars</Pill>}>
+            <ClickBarChart rows={agg.structuralTypes.map((d, i) => ({ ...d, key: `${d.label}__${i}` }))} pickedLabel={pickedStructural} onPick={(label) => togglePick("structural", label)} maxBars={26} height={560} />
+          </Card>
+        </div>
+
+        {/* ✅ Parent Orgs (below) — Unknown removed */}
+        <div style={{ marginTop: 14 }}>
+          <Card title="Top Parent Organizations" right={<Pill title="Click a bar to crossfilter all visuals">Click bars</Pill>}>
+            <ClickBarChart rows={agg.parentOrgs.map((d, i) => ({ ...d, key: `${d.label}__${i}` }))} pickedLabel={pickedParentOrg} onPick={(label) => togglePick("parentOrg", label)} maxBars={18} height={460} />
+          </Card>
+        </div>
+
+        {/* Active donut + Licenses */}
+        <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 14, alignItems: "stretch" }}>
+          <Card title="Active vs Inactive Tools" right={<Pill title="Click a segment to crossfilter all visuals">Click segments</Pill>}>
+            <ClickDonut data={agg.active} pickedLabel={pickedActive} onPick={(label) => togglePick("active", label)} height={380} />
+          </Card>
+
+          <Card title="Popular Types of Licenses" right={<Pill title="Click a segment to crossfilter all visuals">Click segments</Pill>}>
             <ClickDonut data={agg.licenses.map((d) => ({ label: d.label, value: d.value }))} pickedLabel={pickedLicense} onPick={(label) => togglePick("license", label)} height={420} />
           </Card>
         </div>
 
-        {/* Selected infra as FULL TABLE */}
+        {/* Infra tools table: shows filtered tools by default, selected tools when a visual is clicked */}
         <div style={{ marginTop: 14 }}>
           <Card
-            title="Selected Infrastructure Tools"
+            title={selectionCount > 0 ? "Selected Infrastructure Tools (from visual selection)" : "Filtered Infrastructure Tools"}
             right={
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                <Pill active={selectionCount > 0}>{selectionCount ? `${selectionCount} tools` : "0 tools"}</Pill>
+                <Pill active title="Pagination">
+                  {selectionCount > 0 ? `${selectionCount} tools (selected)` : `${compact(infraRows.length)} tools (filtered)`}
+                  <span style={{ opacity: 0.6, fontWeight: 900 }}> • Page {tablePage}/{tableTotalPages}</span>
+                </Pill>
+
+                <label style={{ fontWeight: 950, opacity: 0.7, fontSize: 12 }}>Rows</label>
+                <select
+                  value={tablePageSize}
+                  onChange={(e) => {
+                    setTablePageSize(Number(e.target.value));
+                    setTablePage(1);
+                  }}
+                  style={{
+                    padding: "8px 10px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(0,0,0,0.14)",
+                    fontWeight: 950,
+                    background: "rgba(255,255,255,0.9)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {[10, 25, 50, 100].map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+
+                {/* UX polish: First/Prev/Next/Last + Jump */}
+                <Button variant="secondary" onClick={() => setTablePage(1)} disabled={tablePage <= 1} title="First page">
+                  « First
+                </Button>
+                <Button variant="secondary" onClick={() => setTablePage((p) => Math.max(1, p - 1))} disabled={tablePage <= 1} title="Previous page">
+                  Prev
+                </Button>
+                <Button variant="secondary" onClick={() => setTablePage((p) => Math.min(tableTotalPages, p + 1))} disabled={tablePage >= tableTotalPages} title="Next page">
+                  Next
+                </Button>
+                <Button variant="secondary" onClick={() => setTablePage(tableTotalPages)} disabled={tablePage >= tableTotalPages} title="Last page">
+                  Last »
+                </Button>
+
+                <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 950, opacity: 0.7 }}>Jump</span>
+                  <input
+                    value={tableJump}
+                    onChange={(e) => setTableJump(e.target.value.replace(/[^\d]/g, ""))}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") applyJump();
+                    }}
+                    inputMode="numeric"
+                    placeholder="Page"
+                    style={{
+                      width: 74,
+                      padding: "10px 10px",
+                      borderRadius: 12,
+                      border: "1px solid rgba(0,0,0,0.14)",
+                      background: "rgba(255,255,255,0.92)",
+                      fontWeight: 950,
+                      outline: "none",
+                    }}
+                  />
+                  <Button variant="secondary" onClick={applyJump} disabled={tableTotalPages <= 1} title="Go to page">
+                    Go
+                  </Button>
+                </div>
+
                 <Button variant="secondary" onClick={clearSelectionTray} disabled={selectionCount === 0}>
-                  Clear
+                  Clear selection
                 </Button>
               </div>
             }
           >
-            {selectionCount === 0 ? (
-              <div style={{ fontWeight: 850, opacity: 0.65 }}>
-                Click a <b>bar</b>, <b>donut segment</b>, or <b>year point</b> to create a selection set. Then the full table appears here.
-              </div>
+            {tableRows.length === 0 ? (
+              <div style={{ fontWeight: 850, opacity: 0.65 }}>{loading ? "Loading…" : "No tools match the current filters."}</div>
             ) : (
               <div
                 style={{
@@ -1424,6 +1613,21 @@ export default function InfraVisualize() {
                   background: "rgba(255,255,255,0.85)",
                 }}
               >
+                <div style={{ padding: "10px 12px", borderBottom: "1px solid rgba(0,0,0,0.06)", fontWeight: 850, opacity: 0.75 }}>
+                  {selectionCount > 0 ? (
+                    <>
+                      Crossfiltered view: click <b>Clear selection</b> to return to full filtered dataset.
+                    </>
+                  ) : (
+                    <>
+                      Showing tools matching UI filters. Click any visual to <b>crossfilter</b> and narrow the dataset.
+                    </>
+                  )}
+                  <span style={{ marginLeft: 10, opacity: 0.65 }}>
+                    Showing <b>{pagedTableRows.length}</b> of <b>{tableTotal}</b>.
+                  </span>
+                </div>
+
                 <div style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
                     <thead>
@@ -1448,7 +1652,7 @@ export default function InfraVisualize() {
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedInfraRows.map((row, idx) => {
+                      {pagedTableRows.map((row, idx) => {
                         const name = String(row?.INFRA_NAME || "").trim();
                         const rowKey = name || String(idx);
                         return (
@@ -1621,9 +1825,7 @@ export default function InfraVisualize() {
         </div>
 
         {Object.keys(filterOptions || {}).length === 0 ? (
-          <div style={{ marginTop: 12, color: "rgba(0,0,0,0.6)", fontWeight: 800 }}>
-            Filters are unavailable right now. You can still use the search + year range inputs.
-          </div>
+          <div style={{ marginTop: 12, color: "rgba(0,0,0,0.6)", fontWeight: 800 }}>Filters are unavailable right now. You can still use the search + year range inputs.</div>
         ) : null}
       </Modal>
 
@@ -1754,15 +1956,9 @@ export default function InfraVisualize() {
                         title={orgId ? "Open org profile" : undefined}
                       >
                         <td style={{ padding: "12px 12px", borderBottom: "1px solid rgba(0,0,0,0.06)", fontWeight: 980 }}>{o?.ORG_NAME || "—"}</td>
-                        <td style={{ padding: "12px 12px", borderBottom: "1px solid rgba(0,0,0,0.06)", fontWeight: 900, opacity: 0.85 }}>
-                          {o?.GEONAME_COUNTRY_NAME || "—"}
-                        </td>
-                        <td style={{ padding: "12px 12px", borderBottom: "1px solid rgba(0,0,0,0.06)", fontWeight: 900, opacity: 0.85 }}>
-                          {o?.ORG_SIZING_CALCULATED || "—"}
-                        </td>
-                        <td style={{ padding: "12px 12px", borderBottom: "1px solid rgba(0,0,0,0.06)", fontWeight: 850, opacity: 0.8 }}>
-                          {truncate(String(o?.SERVICES || "—"), 90)}
-                        </td>
+                        <td style={{ padding: "12px 12px", borderBottom: "1px solid rgba(0,0,0,0.06)", fontWeight: 900, opacity: 0.85 }}>{o?.GEONAME_COUNTRY_NAME || "—"}</td>
+                        <td style={{ padding: "12px 12px", borderBottom: "1px solid rgba(0,0,0,0.06)", fontWeight: 900, opacity: 0.85 }}>{o?.ORG_SIZING_CALCULATED || "—"}</td>
+                        <td style={{ padding: "12px 12px", borderBottom: "1px solid rgba(0,0,0,0.06)", fontWeight: 850, opacity: 0.8 }}>{truncate(String(o?.SERVICES || "—"), 90)}</td>
                       </tr>
                     );
                   })
