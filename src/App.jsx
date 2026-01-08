@@ -259,6 +259,7 @@ import LocationInsights from "./pages/LocationInsights";
 import ContentTypeInsights from "./pages/ContentTypeInsights";
 import ServiceInsights from "./pages/ServiceInsights";
 import CustomMedmzDataInsights from "./pages/CustomMedmzDataInsights";
+import InfraVisualize from "./pages/infraVisualize";
 
 import BookmarksModal from "./bookmarks/BookmarksModal.jsx";
 
@@ -388,6 +389,7 @@ export default function App() {
 
           {/* INFRA */}
           <Route path="/participants/organizations/infrastructure" element={<Infrastructure />} />
+          <Route path="/participants/organizations/infrastructure/visualize" element={<InfraVisualize />}/>
           <Route path="/participants/organizations/infrastructure/:infraName" element={<InfrastructureDetails />} />
 
           {/* ✅ IMPORTANT: schema must come BEFORE :orgId */}
@@ -408,3 +410,4 @@ export default function App() {
     </HashRouter>
   );
 }
+
