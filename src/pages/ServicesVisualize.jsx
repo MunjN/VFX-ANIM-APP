@@ -552,6 +552,77 @@ function countBySingleTokenNormalized(orgs, field) {
  * Fetch ALL orgs under current filters (paged).
  * NOTE: services are the primary hierarchy filter in this page.
  */
+// async function fetchAllOrgs({
+//   services, // primary filter coming from the Service tree
+//   svcMatch, // any|all for services (if your API supports it)
+//   ct, // secondary filter (content types) from bar list
+//   ctMatch, // any|all for content types
+//   infra,
+//   regions,
+//   countries,
+//   sizing,
+// }) {
+//   const pageSize = 500;
+//   let page = 1;
+//   let out = [];
+
+//   const base = new URLSearchParams();
+
+//   // Primary: SERVICES
+//   if (services?.length) {
+//     base.set("SERVICES", services.join(","));
+//     // IMPORTANT: server/index.js does NOT support SVC_MATCH.
+//     // Sending unknown params makes the backend treat them like real filters.
+//     // We implement services match mode (any/all) client-side below.
+//   }
+
+//   // Secondary filters (kept from previous page)
+//   if (ct?.length) {
+//     base.set("CONTENT_TYPES", ct.join(","));
+//     base.set("CT_MATCH", ctMatch || "any");
+//   }
+//   if (infra?.length) base.set("INFRASTRUCTURE_TOOLS", infra.join(","));
+//   if (regions?.length) base.set("SALES_REGION", regions.join(","));
+//   if (countries?.length) base.set("GEONAME_COUNTRY_NAME", countries.join(","));
+//   if (sizing?.length) base.set("ORG_SIZING_CALCULATED", sizing.join(","));
+
+//   while (true) {
+//     const p = new URLSearchParams(base.toString());
+//     p.set("page", String(page));
+//     p.set("pageSize", String(pageSize));
+
+//     const r = await fetch(`${base}/api/orgs?${p.toString()}`);
+//     if (!r.ok) throw new Error(`HTTP ${r.status}`);
+//     const j = await r.json();
+//     const rows = Array.isArray(j?.data) ? j.data : [];
+//     out = out.concat(rows);
+
+//     if (rows.length < pageSize) break;
+//     page += 1;
+//   }
+
+//   // Dedupe across pages
+//   const byId = new Map();
+//   for (const o of out) {
+//     const k = String(o?.ORG_ID ?? o?.orgId ?? o?.id ?? o?.ORG_NAME ?? "").trim();
+//     if (!k) continue;
+//     if (!byId.has(k)) byId.set(k, o);
+//   }
+
+//   let rows = Array.from(byId.values());
+
+//   // Client-side SERVICES match mode (server only supports OR-style matching)
+//   if (services?.length && String(svcMatch || "any").toLowerCase() === "all") {
+//     const need = services.map(normalize).filter(Boolean);
+//     rows = rows.filter((org) => {
+//       const have = new Set(uniqTokensForOrg(org?.SERVICES).map(normalize).filter(Boolean));
+//       return need.every((t) => have.has(t));
+//     });
+//   }
+
+//   return rows;
+// }
+
 async function fetchAllOrgs({
   services, // primary filter coming from the Service tree
   svcMatch, // any|all for services (if your API supports it)
@@ -566,31 +637,31 @@ async function fetchAllOrgs({
   let page = 1;
   let out = [];
 
-  const base = new URLSearchParams();
+  // ✅ IMPORTANT: do NOT name this "base" — that shadows your env base URL string.
+  const qsBase = new URLSearchParams();
 
   // Primary: SERVICES
   if (services?.length) {
-    base.set("SERVICES", services.join(","));
-    // IMPORTANT: server/index.js does NOT support SVC_MATCH.
-    // Sending unknown params makes the backend treat them like real filters.
-    // We implement services match mode (any/all) client-side below.
+    qsBase.set("SERVICES", services.join(","));
+    // server doesn't support SVC_MATCH; we apply svcMatch client-side below.
   }
 
-  // Secondary filters (kept from previous page)
+  // Secondary filters
   if (ct?.length) {
-    base.set("CONTENT_TYPES", ct.join(","));
-    base.set("CT_MATCH", ctMatch || "any");
+    qsBase.set("CONTENT_TYPES", ct.join(","));
+    qsBase.set("CT_MATCH", ctMatch || "any");
   }
-  if (infra?.length) base.set("INFRASTRUCTURE_TOOLS", infra.join(","));
-  if (regions?.length) base.set("SALES_REGION", regions.join(","));
-  if (countries?.length) base.set("GEONAME_COUNTRY_NAME", countries.join(","));
-  if (sizing?.length) base.set("ORG_SIZING_CALCULATED", sizing.join(","));
+  if (infra?.length) qsBase.set("INFRASTRUCTURE_TOOLS", infra.join(","));
+  if (regions?.length) qsBase.set("SALES_REGION", regions.join(","));
+  if (countries?.length) qsBase.set("GEONAME_COUNTRY_NAME", countries.join(","));
+  if (sizing?.length) qsBase.set("ORG_SIZING_CALCULATED", sizing.join(","));
 
   while (true) {
-    const p = new URLSearchParams(base.toString());
+    const p = new URLSearchParams(qsBase.toString());
     p.set("page", String(page));
     p.set("pageSize", String(pageSize));
 
+    // ✅ Uses the module-level `base = import.meta.env.VITE_API_BASE`
     const r = await fetch(`${base}/api/orgs?${p.toString()}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const j = await r.json();
@@ -2241,6 +2312,7 @@ export default function ServicesVisualize() {
     </div>
   );
 }
+
 
 
 
