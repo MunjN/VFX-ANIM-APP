@@ -591,7 +591,7 @@ async function fetchAllOrgs({
     p.set("page", String(page));
     p.set("pageSize", String(pageSize));
 
-    const r = await fetch(`{$base}/api/orgs?${p.toString()}`);
+    const r = await fetch(`${base}/api/orgs?${p.toString()}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const j = await r.json();
     const rows = Array.isArray(j?.data) ? j.data : [];
@@ -772,7 +772,7 @@ export default function ServicesVisualize() {
         let all = [];
         let total = Infinity;
         while (alive && all.length < total) {
-          const rr = await fetch(`{$base}/api/orgs?page=${page}&pageSize=${pageSize}`);
+          const rr = await fetch(`${base}/api/orgs?page=${page}&pageSize=${pageSize}`);
           if (!rr.ok) throw new Error(`HTTP ${rr.status} while loading orgs`);
           const jj = await rr.json();
           // Server returns { data, total, page, pageSize }
@@ -2241,4 +2241,5 @@ export default function ServicesVisualize() {
     </div>
   );
 }
+
 
