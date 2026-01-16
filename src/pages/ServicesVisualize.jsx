@@ -758,7 +758,7 @@ export default function ServicesVisualize() {
         setLoading(true);
         setErr("");
         // 1) Leaf counts from the backend (fast)
-        const r = await fetch(base+"/api/orgs/services/counts");
+        const r = await fetch(`${base}/api/orgs/services/counts`);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = await r.json();
         if (!alive) return;
@@ -2241,5 +2241,6 @@ export default function ServicesVisualize() {
     </div>
   );
 }
+
 
 
