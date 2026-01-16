@@ -20,7 +20,7 @@ const CONTENT_TYPE_DEFINITION =
  * Source-of-truth reference data provided by you.
  * We ignore Proposed New Name (not present here).
  */
-const CONTENT_TYPES_REFERENCE = [
+export const CONTENT_TYPES_REFERENCE = [
   {
     CONTENT_TYPE_ID: "eda78c92-a64c-4660-bb2a-f408699a1615",
     CONTENT_TYPE_NAME: "Scripted",
@@ -1559,5 +1559,6 @@ export default function ContentTypes() {
     </div>
   );
 }
+
 
 
