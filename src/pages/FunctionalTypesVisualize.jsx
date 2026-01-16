@@ -783,7 +783,7 @@ export default function FunctionalTypesVisualize() {
       try {
         setLoading(true);
         setErr("");
-        const res = await fetch(`{$base}/api/functional-types/insights${qs}`, { signal: ctrl.signal });
+        const res = await fetch(`${base}/api/functional-types/insights${qs}`, { signal: ctrl.signal });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const j = await res.json();
         if (!alive) return;
@@ -1600,4 +1600,5 @@ export default function FunctionalTypesVisualize() {
     </div>
   );
 }
+
 
