@@ -1724,6 +1724,10 @@ export default function Services() {
     navigate(`/participants/organizations?${params.toString()}`);
   }
 
+  function goToVisualize() {
+  navigate("./visualize");
+}
+
   function countFor(serviceName) {
     if (!totalsByService) return null;
     const raw = String(serviceName || "").trim();
@@ -1853,23 +1857,29 @@ export default function Services() {
             {selected.size > 0 ? <Pill>{selected.size} selected</Pill> : null}
           </div>
 
-          <a
-            href="https://me-dmz.com"
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              textDecoration: "none",
-              color: BRAND.ink,
-              fontWeight: 1000,
-              opacity: 0.92,
-              padding: "10px 12px",
-              borderRadius: 12,
-              border: `1px solid rgba(30,42,120,0.18)`,
-              background: "#FFFFFF",
-            }}
-          >
-            ME-DMZ ↗
-          </a>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <SmallButton onClick={goToVisualize} title="Visualize services across organizations">
+          Visualize
+        </SmallButton>
+
+        <a
+          href="https://me-dmz.com"
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            textDecoration: "none",
+            color: BRAND.ink,
+            fontWeight: 1000,
+            opacity: 0.92,
+            padding: "10px 12px",
+            borderRadius: 12,
+            border: `1px solid rgba(30,42,120,0.18)`,
+            background: "#FFFFFF",
+          }}
+        >
+          ME-DMZ ↗
+        </a>
+      </div>
         </div>
       </div>
 
