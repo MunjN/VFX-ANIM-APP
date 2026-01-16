@@ -28,7 +28,7 @@ import ServiceInsights from "./pages/ServiceInsights";
 import CustomMedmzDataInsights from "./pages/CustomMedmzDataInsights";
 import InfraVisualize from "./pages/infraVisualize";
 
-import FunctionalTypesVisualize from "./pages/functionalTypesVisualize";
+import FunctionalTypesVisualize from "./pages/FunctionalTypesVisualize";
 import ContentTypesVisualize from "./pages/contentTypesVisualize";
 import ServicesVisualize from "./pages/ServicesVisualize";
 
@@ -185,5 +185,6 @@ export default function App() {
     </HashRouter>
   );
 }
+
 
 
