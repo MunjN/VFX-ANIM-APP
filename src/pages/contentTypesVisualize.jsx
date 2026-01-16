@@ -665,7 +665,7 @@ export default function ContentTypesVisualizeV2() {
       try {
         setLoading(true);
         setErr("");
-        const r = await fetch(base+"/api/orgs/content-types/counts");
+        const r = await fetch(`${base}/api/orgs/content-types/counts`);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = await r.json();
         if (!alive) return;
