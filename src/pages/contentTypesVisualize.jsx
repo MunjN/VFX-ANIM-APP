@@ -13,6 +13,7 @@ const BRAND = {
 
 const PAGE = { max: 1280 };
 
+const base = import.meta.env.VITE_API_BASE;
 function normalize(s) {
   return String(s || "")
     .trim()
@@ -539,7 +540,7 @@ async function fetchAllOrgs({ ct, ctMatch, services, infra, regions, countries, 
     p.set("page", String(page));
     p.set("pageSize", String(pageSize));
 
-    const r = await fetch(`/api/orgs?${p.toString()}`);
+    const r = await fetch(`${base}/api/orgs?${p.toString()}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const j = await r.json();
     const rows = Array.isArray(j?.data) ? j.data : [];
@@ -664,7 +665,7 @@ export default function ContentTypesVisualizeV2() {
       try {
         setLoading(true);
         setErr("");
-        const r = await fetch("/api/orgs/content-types/counts");
+        const r = await fetch(base+"/api/orgs/content-types/counts");
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = await r.json();
         if (!alive) return;
@@ -835,7 +836,7 @@ export default function ContentTypesVisualizeV2() {
         if (selectedCountries.size > 0) params.set("GEONAME_COUNTRY_NAME", selectedCountriesArr.join(","));
         if (selectedSizing.size > 0) params.set("ORG_SIZING_CALCULATED", selectedSizingArr.join(","));
 
-        const r = await fetch(`/api/orgs?${params.toString()}`);
+        const r = await fetch(`${base}/api/orgs?${params.toString()}`);
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
         const j = await r.json();
 
