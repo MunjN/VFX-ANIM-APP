@@ -519,27 +519,71 @@ function countBySingleTokenNormalized(orgs, field) {
    Data helpers
 ========================= */
 
+// async function fetchAllOrgs({ ct, ctMatch, services, infra, regions, countries, sizing }) {
+//   const pageSize = 500;
+//   let page = 1;
+//   let out = [];
+
+//   const base = new URLSearchParams();
+//   if (ct?.length) {
+//     base.set("CONTENT_TYPES", ct.join(","));
+//     base.set("CT_MATCH", ctMatch || "any");
+//   }
+//   if (services?.length) base.set("SERVICES", services.join(","));
+//   if (infra?.length) base.set("INFRASTRUCTURE_TOOLS", infra.join(","));
+//   if (regions?.length) base.set("SALES_REGION", regions.join(","));
+//   if (countries?.length) base.set("GEONAME_COUNTRY_NAME", countries.join(","));
+//   if (sizing?.length) base.set("ORG_SIZING_CALCULATED", sizing.join(","));
+
+//   while (true) {
+//     const p = new URLSearchParams(base.toString());
+//     p.set("page", String(page));
+//     p.set("pageSize", String(pageSize));
+
+//     const r = await fetch(`${base}/api/orgs?${p.toString()}`);
+//     if (!r.ok) throw new Error(`HTTP ${r.status}`);
+//     const j = await r.json();
+//     const rows = Array.isArray(j?.data) ? j.data : [];
+//     out = out.concat(rows);
+
+//     if (rows.length < pageSize) break;
+//     page += 1;
+//   }
+
+//   // De-dupe: /api/orgs can return the same org multiple times across pages
+//   const byId = new Map();
+//   for (const o of out) {
+//     const k = String(o?.ORG_ID ?? o?.orgId ?? o?.id ?? o?.ORG_NAME ?? '').trim();
+//     if (!k) continue;
+//     if (!byId.has(k)) byId.set(k, o);
+//   }
+//   return Array.from(byId.values());
+// }
+
 async function fetchAllOrgs({ ct, ctMatch, services, infra, regions, countries, sizing }) {
   const pageSize = 500;
   let page = 1;
   let out = [];
 
-  const base = new URLSearchParams();
+  // ✅ rename this so it doesn't shadow your API base URL string
+  const qsBase = new URLSearchParams();
+
   if (ct?.length) {
-    base.set("CONTENT_TYPES", ct.join(","));
-    base.set("CT_MATCH", ctMatch || "any");
+    qsBase.set("CONTENT_TYPES", ct.join(","));
+    qsBase.set("CT_MATCH", ctMatch || "any");
   }
-  if (services?.length) base.set("SERVICES", services.join(","));
-  if (infra?.length) base.set("INFRASTRUCTURE_TOOLS", infra.join(","));
-  if (regions?.length) base.set("SALES_REGION", regions.join(","));
-  if (countries?.length) base.set("GEONAME_COUNTRY_NAME", countries.join(","));
-  if (sizing?.length) base.set("ORG_SIZING_CALCULATED", sizing.join(","));
+  if (services?.length) qsBase.set("SERVICES", services.join(","));
+  if (infra?.length) qsBase.set("INFRASTRUCTURE_TOOLS", infra.join(","));
+  if (regions?.length) qsBase.set("SALES_REGION", regions.join(","));
+  if (countries?.length) qsBase.set("GEONAME_COUNTRY_NAME", countries.join(","));
+  if (sizing?.length) qsBase.set("ORG_SIZING_CALCULATED", sizing.join(","));
 
   while (true) {
-    const p = new URLSearchParams(base.toString());
+    const p = new URLSearchParams(qsBase.toString());
     p.set("page", String(page));
     p.set("pageSize", String(pageSize));
 
+    // ✅ uses your module-level: const base = import.meta.env.VITE_API_BASE;
     const r = await fetch(`${base}/api/orgs?${p.toString()}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const j = await r.json();
@@ -553,10 +597,11 @@ async function fetchAllOrgs({ ct, ctMatch, services, infra, regions, countries, 
   // De-dupe: /api/orgs can return the same org multiple times across pages
   const byId = new Map();
   for (const o of out) {
-    const k = String(o?.ORG_ID ?? o?.orgId ?? o?.id ?? o?.ORG_NAME ?? '').trim();
+    const k = String(o?.ORG_ID ?? o?.orgId ?? o?.id ?? o?.ORG_NAME ?? "").trim();
     if (!k) continue;
     if (!byId.has(k)) byId.set(k, o);
   }
+
   return Array.from(byId.values());
 }
 
