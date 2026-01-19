@@ -31,6 +31,7 @@ import InfraVisualize from "./pages/infraVisualize";
 import FunctionalTypesVisualize from "./pages/FunctionalTypesVisualize";
 import ContentTypesVisualize from "./pages/contentTypesVisualize";
 import ServicesVisualize from "./pages/ServicesVisualize";
+import OrganizationsVisualize from "./pages/OrganizationsVisualize";
 
 import BookmarksModal from "./bookmarks/BookmarksModal.jsx";
 
@@ -155,7 +156,8 @@ export default function App() {
 
           <Route path="/participants/organizations/functional-types/visualize" element={<FunctionalTypesVisualize />} />
           <Route path="/participants/organizations/content-types/visualize" element={<ContentTypesVisualize />} />
-          <Route path="/participants/organizations/services/visualize" element={<ServicesVisualize />} />
+          <Route path="/participants/organizations/services/visualize" element={<ServicesVisualize />} /> 
+          <Route path="/participants/organizations/visualize" element={<OrganizationsVisualize />} />
 
           {/* PRODUCTION LOCATIONS */}
           <Route path="/participants/organizations/production-locations" element={<ProductionLocations />} />
@@ -185,6 +187,7 @@ export default function App() {
     </HashRouter>
   );
 }
+
 
 
 
