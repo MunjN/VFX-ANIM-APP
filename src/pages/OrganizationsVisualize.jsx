@@ -935,7 +935,7 @@ export default function OrganizationsVisualize() {
         const params = {
           q,
           page: 1,
-          pageSize: 50000,
+          pageSize: 500,
           locationScope,
           ORG_ACTIVE_AS_OF_YEAR_MIN: yearMin,
           ORG_ACTIVE_AS_OF_YEAR_MAX: yearMax,
@@ -1728,4 +1728,5 @@ export default function OrganizationsVisualize() {
     </div>
   );
 }
+
 
