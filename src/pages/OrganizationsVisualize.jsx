@@ -51,6 +51,43 @@ function splitExactList(raw) {
     .filter(Boolean);
 }
 
+async function fetchJson(url, { signal } = {}) {
+  const res = await fetch(url, { signal });
+  if (!res.ok) throw new Error(`Request failed (${res.status})`);
+  return res.json();
+}
+
+/**
+ * Fetches ALL pages by incrementing `page` until:
+ * - returned data length < pageSize, OR
+ * - `nextPage` / `nextOffset` is missing (if your API supports it), OR
+ * - maxPages safety limit reached
+ *
+ * Expects your /api/orgs to return { data: [...] } (which your code already assumes).
+ * Expects /api/locations/points to return either [...] or { data: [...] } depending on your API.
+ */
+async function fetchAllPages({
+  baseUrl,
+  params,
+  pageSize = 1000,
+  maxPages = 200, // safety
+  signal,
+  extract = (json) => (Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : []),
+}) {
+  const out = [];
+  for (let page = 1; page <= maxPages; page++) {
+    const url = `${baseUrl}${toQueryString({ ...params, page, pageSize })}`;
+    const json = await fetchJson(url, { signal });
+    const chunk = extract(json);
+    out.push(...chunk);
+
+    // stop conditions
+    if (chunk.length < pageSize) break;
+  }
+  return out;
+}
+
+
 function firstExactToken(raw) {
   const xs = splitExactList(raw);
   const first = xs[0] || String(raw ?? "").trim() || "—";
@@ -925,62 +962,134 @@ export default function OrganizationsVisualize() {
   }, [filtersToUrl]);
 
   // Fetch orgs (cohort)
-  useEffect(() => {
-    let cancelled = false;
+  // useEffect(() => {
+  //   let cancelled = false;
 
-    async function run() {
-      setLoading(true);
-      setError("");
-      try {
-        const params = {
-          q,
-          page: 1,
-          pageSize: 500,
-          locationScope,
-          ORG_ACTIVE_AS_OF_YEAR_MIN: yearMin,
-          ORG_ACTIVE_AS_OF_YEAR_MAX: yearMax,
-          CITY: selectedCities, // multi-select
-          ...selected,
-        };
-        const res = await fetch(`${base}/api/orgs${toQueryString(params)}`);
-        if (!res.ok) throw new Error(`Orgs request failed (${res.status})`);
-        const json = await res.json();
-        if (cancelled) return;
-        setOrgs(Array.isArray(json?.data) ? json.data : []);
-      } catch (e) {
-        if (cancelled) return;
-        setError(String(e?.message || e));
-        setOrgs([]);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
+  //   async function run() {
+  //     setLoading(true);
+  //     setError("");
+  //     try {
+  //       const params = {
+  //         q,
+  //         page: 1,
+  //         pageSize: 500,
+  //         locationScope,
+  //         ORG_ACTIVE_AS_OF_YEAR_MIN: yearMin,
+  //         ORG_ACTIVE_AS_OF_YEAR_MAX: yearMax,
+  //         CITY: selectedCities, // multi-select
+  //         ...selected,
+  //       };
+  //       const res = await fetch(`${base}/api/orgs${toQueryString(params)}`);
+  //       if (!res.ok) throw new Error(`Orgs request failed (${res.status})`);
+  //       const json = await res.json();
+  //       if (cancelled) return;
+  //       setOrgs(Array.isArray(json?.data) ? json.data : []);
+  //     } catch (e) {
+  //       if (cancelled) return;
+  //       setError(String(e?.message || e));
+  //       setOrgs([]);
+  //     } finally {
+  //       if (!cancelled) setLoading(false);
+  //     }
+  //   }
 
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [q, locationScope, yearMin, yearMax, selected, selectedCities]);
+  //   run();
+  //   return () => {
+  //     cancelled = true;
+  //   };
+  // }, [q, locationScope, yearMin, yearMax, selected, selectedCities]);
+
+   // Fetch orgs (FULL cohort via paging)
+   useEffect(() => {
+     const ac = new AbortController();
+   
+     async function run() {
+       setLoading(true);
+       setError("");
+       try {
+         const params = {
+           q,
+           locationScope,
+           ORG_ACTIVE_AS_OF_YEAR_MIN: yearMin,
+           ORG_ACTIVE_AS_OF_YEAR_MAX: yearMax,
+           CITY: selectedCities,
+           ...selected,
+         };
+   
+         // IMPORTANT: keep this <= whatever your server can reliably return per call
+         const pageSize = 1000;
+   
+         const all = await fetchAllPages({
+           baseUrl: `${base}/api/orgs`,
+           params,
+           pageSize,
+           maxPages: 500, // adjust if you truly have a lot
+           signal: ac.signal,
+           extract: (json) => (Array.isArray(json?.data) ? json.data : []),
+         });
+   
+         setOrgs(all);
+       } catch (e) {
+         if (ac.signal.aborted) return;
+         setError(String(e?.message || e));
+         setOrgs([]);
+       } finally {
+         if (!ac.signal.aborted) setLoading(false);
+       }
+     }
+   
+     run();
+     return () => ac.abort();
+   }, [q, locationScope, yearMin, yearMax, selected, selectedCities]);
 
   // Fetch location points
-  useEffect(() => {
-    let cancelled = false;
-    async function run() {
-      try {
-        const res = await fetch(`${base}/api/locations/points`);
-        if (!res.ok) return;
-        const json = await res.json();
-        if (cancelled) return;
-        setLocationsPoints(Array.isArray(json) ? json : []);
-      } catch {
-        // ignore
-      }
-    }
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // useEffect(() => {
+  //   let cancelled = false;
+  //   async function run() {
+  //     try {
+  //       const res = await fetch(`${base}/api/locations/points`);
+  //       if (!res.ok) return;
+  //       const json = await res.json();
+  //       if (cancelled) return;
+  //       setLocationsPoints(Array.isArray(json) ? json : []);
+  //     } catch {
+  //       // ignore
+  //     }
+  //   }
+  //   run();
+  //   return () => {
+  //     cancelled = true;
+  //   };
+  // }, []);
+      // Fetch location points (FULL set via paging)
+   useEffect(() => {
+     const ac = new AbortController();
+   
+     async function run() {
+       try {
+         // If your server supports paging on this endpoint:
+         // GET /api/locations/points?page=1&pageSize=...
+         const pageSize = 2000;
+   
+         const all = await fetchAllPages({
+           baseUrl: `${base}/api/locations/points`,
+           params: {}, // optionally add locationScope, bbox, etc.
+           pageSize,
+           maxPages: 1000,
+           signal: ac.signal,
+           extract: (json) => (Array.isArray(json?.data) ? json.data : Array.isArray(json) ? json : []),
+         });
+   
+         setLocationsPoints(all);
+       } catch {
+         // ignore
+       }
+     }
+   
+     run();
+     return () => ac.abort();
+   }, []);
+
 
   function toggleFilter(field, value) {
     const v = String(value ?? "").trim();
@@ -1728,5 +1837,6 @@ export default function OrganizationsVisualize() {
     </div>
   );
 }
+
 
 
