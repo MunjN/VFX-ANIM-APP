@@ -12,6 +12,7 @@ const BRAND = {
   text: "#111827",
 };
 
+const base = import.meta.env.VITE_API_BASE;
 const PAGE = { max: 1280 };
 const CARD_MIN_HEIGHT = 600;
 const BAR_LIST_MAX_HEIGHT = 520;
@@ -941,7 +942,7 @@ export default function OrganizationsVisualize() {
           CITY: selectedCities, // multi-select
           ...selected,
         };
-        const res = await fetch(`/api/orgs${toQueryString(params)}`);
+        const res = await fetch(`${base}/api/orgs${toQueryString(params)}`);
         if (!res.ok) throw new Error(`Orgs request failed (${res.status})`);
         const json = await res.json();
         if (cancelled) return;
@@ -966,7 +967,7 @@ export default function OrganizationsVisualize() {
     let cancelled = false;
     async function run() {
       try {
-        const res = await fetch(`/api/locations/points`);
+        const res = await fetch(`${base}/api/locations/points`);
         if (!res.ok) return;
         const json = await res.json();
         if (cancelled) return;
@@ -1727,3 +1728,4 @@ export default function OrganizationsVisualize() {
     </div>
   );
 }
+
