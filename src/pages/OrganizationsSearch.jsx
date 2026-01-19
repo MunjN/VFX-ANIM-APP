@@ -848,6 +848,22 @@ export default function OrganizationsSearch() {
             Schema Information
           </button>
 
+          <button
+            type="button"
+            onClick={() => navigate("/participants/organizations/visualize")}
+            style={{
+              border: `1px solid rgba(30,42,120,0.18)`,
+              background: "#FFFFFF",
+              color: BRAND.ink,
+              fontWeight: 1000,
+              padding: "10px 12px",
+              borderRadius: 12,
+              cursor: "pointer",
+            }}
+          >
+            Visualize
+          </button>
+
           <a
             href="https://me-dmz.com"
             target="_blank"
@@ -2367,6 +2383,7 @@ export default function OrganizationsSearch() {
     </div>
   );
 }
+
 
 
 
