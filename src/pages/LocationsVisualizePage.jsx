@@ -551,7 +551,7 @@ function useIsNarrow(breakpointPx = 980) {
 
   return narrow;
 }
-
+const base = import.meta.env.VITE_API_BASE;
 export default function LocationsVisualizePage() {
   const filters = useVisualizeFilters();
   const isNarrow = useIsNarrow(980);
@@ -745,3 +745,4 @@ export default function LocationsVisualizePage() {
     </div>
   );
 }
+
