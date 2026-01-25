@@ -2054,6 +2054,14 @@ export default function LocationsMap({ viewMode = "orgs" }) {
         const orgCount = Number(props.orgCount || 0);
         const hqCount = Number(props.hqCount || 0);
 
+        let openOrgId = "";
+        try {
+          const arr = JSON.parse(props.orgIds || "[]");
+          openOrgId = Array.isArray(arr) ? String(arr[0] || "").trim() : "";
+        } catch {
+          openOrgId = "";
+        }
+
         if (popupRef.current) popupRef.current.remove();
 
         const pin = {
@@ -2084,12 +2092,6 @@ export default function LocationsMap({ viewMode = "orgs" }) {
         <div class="me-stat__v">${pin.hqCount ?? 0}</div>
       </div>
     </div>
-
-    <div class="me-pop__actions">
-      <button class="me-btn" data-action="open">Open org</button>
-      <button class="me-btn me-btn--ghost" data-action="filter">Filter</button>
-    </div>
-
     <div class="me-pop__shine"></div>
   </div>
 `;
@@ -2105,16 +2107,6 @@ export default function LocationsMap({ viewMode = "orgs" }) {
           .addTo(map);
 
         // Wire actions AFTER addTo(map) so the popup DOM exists
-        const el = popupRef.current.getElement();
-        el.querySelector('[data-action="open"]')?.addEventListener("click", () => {
-          // TODO: navigate to org profile / whatever you do today
-          // No-op for now to avoid breaking the app.
-        });
-        el.querySelector('[data-action="filter"]')?.addEventListener("click", () => {
-          // TODO: toggle filters
-          // No-op for now to avoid breaking the app.
-        });
-
         // Clicking a city also closes any non-org modal selection (defensive)
         closeViewItemModal();
 
@@ -2148,12 +2140,13 @@ export default function LocationsMap({ viewMode = "orgs" }) {
 
         const props = f.properties || {};
         const coords = f.geometry.coordinates;
-
         // ✅ IMPORTANT FIX:
         // Use getVisualizeFilters() so we always append to the LATEST orgIds (no stale closure).
+        let openOrgId = "";
         try {
           const arr = JSON.parse(props.orgIds || "[]");
           const pickedOrgId = Array.isArray(arr) ? String(arr[0] || "").trim() : "";
+          openOrgId = pickedOrgId;
 
           if (pickedOrgId) {
             const current = getVisualizeFilters();
@@ -2163,6 +2156,7 @@ export default function LocationsMap({ viewMode = "orgs" }) {
           }
         } catch {
           // ignore parse errors
+          openOrgId = "";
         }
 
         const label = props.label;
@@ -2202,12 +2196,6 @@ export default function LocationsMap({ viewMode = "orgs" }) {
         <div class="me-stat__v">${pin.hqCount ?? 0}</div>
       </div>
     </div>
-
-    <div class="me-pop__actions">
-      <button class="me-btn" data-action="open">Open org</button>
-      <button class="me-btn me-btn--ghost" data-action="filter">Filter</button>
-    </div>
-
     <div class="me-pop__shine"></div>
   </div>
 `;
@@ -2221,16 +2209,6 @@ export default function LocationsMap({ viewMode = "orgs" }) {
           .setLngLat(coords)
           .setHTML(html)
           .addTo(map);
-
-        const el = popupRef.current.getElement();
-        el.querySelector('[data-action="open"]')?.addEventListener("click", () => {
-          // TODO: navigate to org profile / whatever you do today
-          // No-op for now to avoid breaking the app.
-        });
-        el.querySelector('[data-action="filter"]')?.addEventListener("click", () => {
-          // TODO: toggle filters
-          // No-op for now to avoid breaking the app.
-        });
       });
 
       // Generic cluster click -> zoom in
@@ -2555,7 +2533,7 @@ export default function LocationsMap({ viewMode = "orgs" }) {
   padding: 0 !important;
   border-radius: 18px !important;
   border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(10, 16, 28, 0.62);
+  background: rgba(18, 52, 110, 0.62);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow:
@@ -2587,14 +2565,14 @@ export default function LocationsMap({ viewMode = "orgs" }) {
 
 /* Make the little pointer (“tip”) match the glass look */
 .me-popup .mapboxgl-popup-tip {
-  border-top-color: rgba(10, 16, 28, 0.62) !important;
+  border-top-color: rgba(18, 52, 110, 0.62) !important;
   filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.35));
 }
 
 /* Inner layout */
 .me-pop {
   position: relative;
-  width: 320px;
+  width: 380px;
   padding: 14px 14px 12px 14px;
   color: rgba(255, 255, 255, 0.92);
 }
@@ -2655,35 +2633,6 @@ export default function LocationsMap({ viewMode = "orgs" }) {
   font-size: 18px;
   font-weight: 900;
   margin-top: 2px;
-}
-
-.me-pop__actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 12px;
-}
-
-.me-btn {
-  flex: 1;
-  padding: 9px 10px;
-  border-radius: 12px;
-  font-weight: 750;
-  font-size: 12px;
-  border: 1px solid rgba(60, 160, 255, 0.35);
-  background: rgba(60, 160, 255, 0.18);
-  color: rgba(255, 255, 255, 0.92);
-  transition: transform 120ms ease, background 120ms ease;
-  cursor: pointer;
-}
-
-.me-btn:hover {
-  transform: translateY(-1px);
-  background: rgba(60, 160, 255, 0.24);
-}
-
-.me-btn--ghost {
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  background: rgba(255, 255, 255, 0.08);
 }
 
 .me-pop__shine {
@@ -2773,4 +2722,5 @@ export default function LocationsMap({ viewMode = "orgs" }) {
     </div>
   );
 }
+
 
