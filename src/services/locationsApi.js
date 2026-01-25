@@ -71,8 +71,8 @@ function unwrapList(payload) {
 /**
  * GET /api/locations/tree
  * Backend shape (current): { regions: [...] }
- * We keep return value as the full object `{ regions: [...] }`
- * so callers can do `tree.regions` reliably.
+ *
+ * We return a stable shape: { regions: [...] }
  */
 export async function getLocationsTree({ ttlMs = DEFAULT_TTL_MS, signal } = {}) {
   // mem cache
@@ -80,7 +80,7 @@ export async function getLocationsTree({ ttlMs = DEFAULT_TTL_MS, signal } = {}) 
 
   // localStorage cache
   const cached = lsGet("locations_tree", ttlMs);
-  if (cached && (Array.isArray(cached?.regions) || Array.isArray(cached))) {
+  if (cached && Array.isArray(cached?.regions)) {
     mem.tree = cached;
     mem.treeAt = now();
     return cached;
@@ -95,8 +95,6 @@ export async function getLocationsTree({ ttlMs = DEFAULT_TTL_MS, signal } = {}) 
 
   const normalizedTree = { regions };
 
-  // Guardrail: don't cache "empty because unexpected shape"
-  // Only cache if it's a valid object with regions (even if empty)
   mem.tree = normalizedTree;
   mem.treeAt = now();
   lsSet("locations_tree", normalizedTree);
@@ -106,7 +104,12 @@ export async function getLocationsTree({ ttlMs = DEFAULT_TTL_MS, signal } = {}) 
 
 /**
  * GET /api/locations/points
- * Backend shape (current): { page, pageSize, returned, totalMatched, data: [...] }
+ *
+ * Backend shape (current):
+ * {
+ *   page, pageSize, returned, totalMatched,
+ *   data: [{ locationId, orgId, orgName, salesRegion, countryName, city, latitude, longitude, isHQ }]
+ * }
  *
  * We normalize into:
  * {
@@ -126,12 +129,32 @@ export async function getLocationPoints({ ttlMs = DEFAULT_TTL_MS, signal } = {})
     return cached;
   }
 
-  const raw = await fetchJson(`${base}/api/locations/points`, { signal });
+  // Confirmed you can request 5000
+  const pageSize = 5000;
+  let page = 1;
 
-  // ✅ support both shapes: array OR { data: [...] }
-  const rows = unwrapList(raw);
+  let allRows = [];
+  let totalMatched = Infinity;
 
-  const normalized = rows
+  while (allRows.length < totalMatched) {
+    const raw = await fetchJson(
+      `${base}/api/locations/points?page=${page}&pageSize=${pageSize}`,
+      { signal }
+    );
+
+    const rows = unwrapList(raw);
+    const returned = Number(raw?.returned ?? rows.length);
+    totalMatched = Number(raw?.totalMatched ?? allRows.length + returned);
+
+    allRows = allRows.concat(rows);
+
+    // stop conditions (defensive)
+    if (returned === 0 || rows.length === 0) break;
+
+    page += 1;
+  }
+
+  const normalized = allRows
     .map((r) => {
       const lat = Number(r?.latitude);
       const lng = Number(r?.longitude);
@@ -158,17 +181,7 @@ export async function getLocationPoints({ ttlMs = DEFAULT_TTL_MS, signal } = {})
 
   mem.points = normalized;
   mem.pointsAt = now();
-
-  // Guardrail: if we got 0 but the API returned rows, don't cache empty
-  // (this helps if coords ever change names/types unexpectedly)
-  if (normalized.length > 0 || rows.length === 0) {
-    lsSet("locations_points", normalized);
-  } else {
-    console.warn(
-      "[locationsApi] Normalized 0 points but API returned rows. Not caching empty result.",
-      { returnedRows: rows.length }
-    );
-  }
+  lsSet("locations_points", normalized);
 
   return normalized;
 }
