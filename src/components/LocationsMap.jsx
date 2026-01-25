@@ -244,6 +244,7 @@ const CLOUD_PROVIDER_PALETTE = [
   "#64748B", // slate
 ];
 
+const base = import.meta.env.VITE_API_BASE;
 function colorForProvider(provider, providersSorted) {
   const p = String(provider || "").trim();
   if (!p) return BRAND.lightGrey;
@@ -267,7 +268,7 @@ async function fetchViewRows(viewMode, filters, { signal } = {}) {
   if (viewMode === "tax") {
     if (sr) qs.set("SALES_REGION", sr);
     if (co) qs.set("COUNTRY", co);
-    const res = await fetch(`/api/views/tax-regions?${qs.toString()}`, { signal });
+    const res = await fetch(`${base}/api/views/tax-regions?${qs.toString()}`, { signal });
     if (!res.ok) throw new Error("Failed to load Tax Regions");
     return res.json();
   }
@@ -276,7 +277,7 @@ async function fetchViewRows(viewMode, filters, { signal } = {}) {
     if (sr) qs.set("SALES_REGION", sr);
     // backend expects GEONAME_COUNTRY_NAME for the filter
     if (co) qs.set("GEONAME_COUNTRY_NAME", co);
-    const res = await fetch(`/api/views/geodata?${qs.toString()}`, { signal });
+    const res = await fetch(`${base}/api/views/geodata?${qs.toString()}`, { signal });
     if (!res.ok) throw new Error("Failed to load Geodata");
     return res.json();
   }
@@ -286,7 +287,7 @@ async function fetchViewRows(viewMode, filters, { signal } = {}) {
     if (sr) qs.set("SALES_REGION", sr);
     if (co) qs.set("COUNTRY_NAME", co);
     if (cp) qs.set("CLOUD_PROVIDER", cp);
-    const res = await fetch(`/api/views/cloud-regions?${qs.toString()}`, { signal });
+    const res = await fetch(`${base}/api/views/cloud-regions?${qs.toString()}`, { signal });
     if (!res.ok) throw new Error("Failed to load Cloud Regions");
     return res.json();
   }
@@ -1271,3 +1272,4 @@ export default function LocationsMap({ viewMode = "orgs" }) {
     </div>
   );
 }
+
