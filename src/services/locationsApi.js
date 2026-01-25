@@ -3,6 +3,7 @@
 const DEFAULT_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const LS_PREFIX = "me_nexus_cache_v1:";
 
+const base = import.meta.env.VITE_API_BASE;
 function now() {
   return Date.now();
 }
@@ -68,7 +69,7 @@ export async function getLocationsTree({ ttlMs = DEFAULT_TTL_MS, signal } = {}) 
     return cached;
   }
 
-  const data = await fetchJson("/api/locations/tree", { signal });
+  const data = await fetchJson(base+"/api/locations/tree", { signal });
   mem.tree = data;
   mem.treeAt = now();
   lsSet("locations_tree", data);
@@ -97,7 +98,7 @@ export async function getLocationPoints({ ttlMs = DEFAULT_TTL_MS, signal } = {})
     return cached;
   }
 
-  const raw = await fetchJson("/api/locations/points", { signal });
+  const raw = await fetchJson(base+"/api/locations/points", { signal });
   const normalized = Array.isArray(raw)
     ? raw
         .map((r) => {
@@ -265,3 +266,4 @@ export function extractFilterOptionsFromPoints(points) {
     cities: [...cities].sort(),
   };
 }
+
