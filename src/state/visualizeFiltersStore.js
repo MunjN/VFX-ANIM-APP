@@ -252,8 +252,10 @@ export function toggleFilterValue(key, value) {
  * NOTE:
  * - Still intentionally does NOT add orgIds by default (unless includeOrgIds=true).
  */
+
+const base = import.meta.env.VITE_API_BASE;
 export function buildMainOrgsUrlFromFilters(
-  basePath = "/participants/organizations",
+  basePath = base+"/participants/organizations",
   filters = state,
   { includeOrgIds = false, orgIdParam = "ORG_ID" } = {}
 ) {
@@ -287,3 +289,4 @@ export function useVisualizeFilters() {
     () => state
   );
 }
+
