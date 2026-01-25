@@ -86,18 +86,18 @@ function buildQueryForView(viewMode, filters) {
 
   return "";
 }
-
+const base = import.meta.env.VITE_API_BASE;
 function endpointForRows(viewMode) {
-  if (viewMode === "tax") return "/api/views/tax-regions";
-  if (viewMode === "geodata") return "/api/views/geodata";
-  if (viewMode === "cloud") return "/api/views/cloud-regions";
+  if (viewMode === "tax") return base+"/api/views/tax-regions";
+  if (viewMode === "geodata") return base+"/api/views/geodata";
+  if (viewMode === "cloud") return base+"/api/views/cloud-regions";
   return "";
 }
 
 function endpointForFilters(viewMode) {
-  if (viewMode === "tax") return "/api/views/tax-regions/filters";
-  if (viewMode === "geodata") return "/api/views/geodata/filters";
-  if (viewMode === "cloud") return "/api/views/cloud-regions/filters";
+  if (viewMode === "tax") return base+"/api/views/tax-regions/filters";
+  if (viewMode === "geodata") return base+"/api/views/geodata/filters";
+  if (viewMode === "cloud") return base+"/api/views/cloud-regions/filters";
   return "";
 }
 
@@ -322,3 +322,4 @@ export function clearViewDataCache() {
   CACHE.clear();
   INFLIGHT.clear();
 }
+
