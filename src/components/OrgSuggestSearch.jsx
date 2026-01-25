@@ -611,12 +611,13 @@ function useDebouncedValue(value, delayMs = 250) {
   return debounced;
 }
 
+const base = import.meta.env.VITE_API_BASE;
 export default function OrgSuggestSearch({
   viewMode = "orgs",
   placeholder = "Search orgs…",
   pageSize = 8,
   minChars = 2,
-  endpoint = "/api/orgs",
+  endpoint = base+"/api/orgs",
 }) {
   const filters = useVisualizeFilters();
 
@@ -1027,3 +1028,4 @@ export default function OrgSuggestSearch({
     </div>
   );
 }
+
