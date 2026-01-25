@@ -4,6 +4,7 @@ const DEFAULT_TTL_MS = 5 * 60 * 1000; // 5 minutes
 const LS_PREFIX = "me_nexus_cache_v1:";
 
 const base = import.meta.env.VITE_API_BASE;
+
 function now() {
   return Date.now();
 }
@@ -55,7 +56,23 @@ const mem = {
 };
 
 /**
+ * Normalize common API "envelope" shapes to a list:
+ * - array -> array
+ * - { data: [...] } -> data
+ * - { items: [...] } -> items
+ */
+function unwrapList(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.items)) return payload.items;
+  return [];
+}
+
+/**
  * GET /api/locations/tree
+ * Backend shape (current): { regions: [...] }
+ * We keep return value as the full object `{ regions: [...] }`
+ * so callers can do `tree.regions` reliably.
  */
 export async function getLocationsTree({ ttlMs = DEFAULT_TTL_MS, signal } = {}) {
   // mem cache
@@ -63,22 +80,33 @@ export async function getLocationsTree({ ttlMs = DEFAULT_TTL_MS, signal } = {}) 
 
   // localStorage cache
   const cached = lsGet("locations_tree", ttlMs);
-  if (cached) {
+  if (cached && (Array.isArray(cached?.regions) || Array.isArray(cached))) {
     mem.tree = cached;
     mem.treeAt = now();
     return cached;
   }
 
-  const data = await fetchJson(`${base}/api/locations/tree`, { signal });
-  mem.tree = data;
+  const raw = await fetchJson(`${base}/api/locations/tree`, { signal });
+
+  // Accept several possible shapes:
+  // - { regions: [...] } (expected)
+  // - { data: [...] } or array (fallback)
+  const regions = Array.isArray(raw?.regions) ? raw.regions : unwrapList(raw);
+
+  const normalizedTree = { regions };
+
+  // Guardrail: don't cache "empty because unexpected shape"
+  // Only cache if it's a valid object with regions (even if empty)
+  mem.tree = normalizedTree;
   mem.treeAt = now();
-  lsSet("locations_tree", data);
-  return data;
+  lsSet("locations_tree", normalizedTree);
+
+  return normalizedTree;
 }
 
 /**
  * GET /api/locations/points
- * Backend shape (from server): [{ locationId, orgId, orgName, salesRegion, countryName, city, latitude, longitude, isHQ }]
+ * Backend shape (current): { page, pageSize, returned, totalMatched, data: [...] }
  *
  * We normalize into:
  * {
@@ -99,46 +127,52 @@ export async function getLocationPoints({ ttlMs = DEFAULT_TTL_MS, signal } = {})
   }
 
   const raw = await fetchJson(`${base}/api/locations/points`, { signal });
-  const normalized = Array.isArray(raw)
-    ? raw
-        .map((r) => {
-          const lat = Number(r?.latitude);
-          const lng = Number(r?.longitude);
-          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
-          const salesRegion = String(r?.salesRegion ?? "Unknown").trim() || "Unknown";
-          const countryName = String(r?.countryName ?? "Unknown").trim() || "Unknown";
-          const city = String(r?.city ?? "Unknown").trim() || "Unknown";
+  // ✅ support both shapes: array OR { data: [...] }
+  const rows = unwrapList(raw);
 
-          return {
-            locationId: String(r?.locationId ?? "").trim(),
-            orgId: String(r?.orgId ?? "").trim(),
-            orgName: String(r?.orgName ?? "").trim(),
-            salesRegion,
-            countryName,
-            city,
-            lat,
-            lng,
-            coords: [lng, lat],
-            isHQ: Boolean(r?.isHQ),
-          };
-        })
-        .filter(Boolean)
-    : [];
+  const normalized = rows
+    .map((r) => {
+      const lat = Number(r?.latitude);
+      const lng = Number(r?.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+      const salesRegion = String(r?.salesRegion ?? "Unknown").trim() || "Unknown";
+      const countryName = String(r?.countryName ?? "Unknown").trim() || "Unknown";
+      const city = String(r?.city ?? "Unknown").trim() || "Unknown";
+
+      return {
+        locationId: String(r?.locationId ?? "").trim(),
+        orgId: String(r?.orgId ?? "").trim(),
+        orgName: String(r?.orgName ?? "").trim(),
+        salesRegion,
+        countryName,
+        city,
+        lat,
+        lng,
+        coords: [lng, lat],
+        isHQ: Boolean(r?.isHQ),
+      };
+    })
+    .filter(Boolean);
 
   mem.points = normalized;
   mem.pointsAt = now();
-  lsSet("locations_points", normalized);
+
+  // Guardrail: if we got 0 but the API returned rows, don't cache empty
+  // (this helps if coords ever change names/types unexpectedly)
+  if (normalized.length > 0 || rows.length === 0) {
+    lsSet("locations_points", normalized);
+  } else {
+    console.warn(
+      "[locationsApi] Normalized 0 points but API returned rows. Not caching empty result.",
+      { returnedRows: rows.length }
+    );
+  }
+
   return normalized;
 }
 
-/**
- * Aggregate points into map “pins”.
- *
- * mode:
- *  - "org": one pin per org-location row (lots of points)
- *  - "city": one pin per locationId (or fallback grouping), with orgCount
- */
 /**
  * Aggregate points into map “pins”.
  *
@@ -266,5 +300,3 @@ export function extractFilterOptionsFromPoints(points) {
     cities: [...cities].sort(),
   };
 }
-
-
