@@ -11,7 +11,7 @@ import {
 
 import { getLocationPoints } from "../services/locationsApi";
 import { useViewFilterOptions } from "../hooks/useViewData";
-const base = import.meta.env.VITE_API_BASE;
+
 const BRAND = {
   primaryLightBlue: "#CEECF2",
   primaryDarkBlue: "#232073",
@@ -470,10 +470,29 @@ export default function LocationsFilters({ viewMode = "orgs" }) {
     );
   }, [filters, isOrgsView, isCloudView]);
 
-  // Orgs-table link only in orgs view (and pass the snapshot to avoid any stale URL)
+  /**
+   * IMPORTANT:
+   * This MUST be the *app* base (where the SPA is hosted), not the API base.
+   * Your app uses hash routing (/#/...), so we build the URL accordingly.
+   *
+   * Example current page:
+   *   https://app-test.me-dmz.com/#/participants/organizations/production-locations/visualize
+   *
+   * Orgs table target:
+   *   https://app-test.me-dmz.com/#/participants/organizations?...filters
+   */
   const orgsUrl = useMemo(() => {
     if (!isOrgsView) return "";
-    return buildMainOrgsUrlFromFilters(`${base}/participants/organizations`, filters, {
+
+    const origin = window.location.origin;
+
+    // If you're using Vite with a custom base path, preserve it (usually "/").
+    const basePath = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+
+    // Because you are using hash routing, the "real" route lives after #/.
+    const appHashRoute = "#/participants/organizations";
+
+    return buildMainOrgsUrlFromFilters(`${origin}${basePath}/${appHashRoute}`.replace(/\/#/, "/#"), filters, {
       includeOrgIds: (filters.orgIds?.size || 0) > 0,
     });
   }, [filters, isOrgsView]);
@@ -572,18 +591,15 @@ export default function LocationsFilters({ viewMode = "orgs" }) {
 
           <div style={styles.kpiRow}>
             <div style={styles.kpiSub}>
-              {loading ? "…" : shownPoints.toLocaleString()}{" "}
-              <span style={styles.kpiSubMuted}>shown</span>
+              {loading ? "…" : shownPoints.toLocaleString()} <span style={styles.kpiSubMuted}>shown</span>
             </div>
             <div style={styles.kpiSubMuted}>•</div>
             <div style={{ ...styles.kpiSub, color: BRAND.primaryDarkBlue }}>
-              {loading ? "…" : totalOrgs.toLocaleString()}{" "}
-              <span style={styles.kpiSubMuted}>orgs</span>
+              {loading ? "…" : totalOrgs.toLocaleString()} <span style={styles.kpiSubMuted}>orgs</span>
             </div>
             <div style={styles.kpiSubMuted}>•</div>
             <div style={{ ...styles.kpiSub, color: BRAND.primaryDarkBlue }}>
-              {loading ? "…" : shownOrgs.toLocaleString()}{" "}
-              <span style={styles.kpiSubMuted}>shown</span>
+              {loading ? "…" : shownOrgs.toLocaleString()} <span style={styles.kpiSubMuted}>shown</span>
             </div>
           </div>
 
@@ -592,9 +608,7 @@ export default function LocationsFilters({ viewMode = "orgs" }) {
       ) : (
         <div style={{ ...styles.card }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-            <div style={{ fontSize: 13, fontWeight: 900, color: BRAND.primaryDarkBlue }}>
-              Global Filters
-            </div>
+            <div style={{ fontSize: 13, fontWeight: 900, color: BRAND.primaryDarkBlue }}>Global Filters</div>
             <div style={styles.pill} title="Active filters">
               {activeFilterCount}
             </div>
@@ -627,8 +641,7 @@ export default function LocationsFilters({ viewMode = "orgs" }) {
 
           {selectedCity ? (
             <div style={{ marginBottom: 10, fontSize: 12, fontWeight: 800, color: BRAND.grey }}>
-              City:{" "}
-              <span style={{ color: BRAND.primaryDarkBlue, fontWeight: 900 }}>{selectedCity}</span>
+              City: <span style={{ color: BRAND.primaryDarkBlue, fontWeight: 900 }}>{selectedCity}</span>
             </div>
           ) : null}
 
@@ -815,18 +828,14 @@ export default function LocationsFilters({ viewMode = "orgs" }) {
             )}
           </div>
 
-          {viewOptionsError ? (
-            <div style={styles.error}>{viewOptionsError}</div>
-          ) : null}
+          {viewOptionsError ? <div style={styles.error}>{viewOptionsError}</div> : null}
 
           {viewOptionsLoading && !cloudProviders.length ? (
             <div style={{ fontSize: 12, fontWeight: 800, color: BRAND.grey }}>Loading providers…</div>
           ) : null}
 
           {!viewOptionsLoading && !cloudProviders.length ? (
-            <div style={{ fontSize: 12, fontWeight: 800, color: BRAND.grey }}>
-              No providers found.
-            </div>
+            <div style={{ fontSize: 12, fontWeight: 800, color: BRAND.grey }}>No providers found.</div>
           ) : null}
 
           {cloudProviders.map((prov) => {
@@ -834,9 +843,7 @@ export default function LocationsFilters({ viewMode = "orgs" }) {
             return (
               <div key={prov} style={styles.row}>
                 <div style={styles.leftRow}>
-                  <div style={{ fontSize: 13, fontWeight: 900, color: BRAND.primaryDarkBlue }}>
-                    {prov}
-                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 900, color: BRAND.primaryDarkBlue }}>{prov}</div>
                 </div>
 
                 <input
@@ -853,9 +860,7 @@ export default function LocationsFilters({ viewMode = "orgs" }) {
             );
           })}
 
-          <div style={styles.hint}>
-            Providers are multi-select. Map colors will match providers.
-          </div>
+          <div style={styles.hint}>Providers are multi-select. Map colors will match providers.</div>
         </div>
       ) : null}
 
@@ -902,5 +907,3 @@ export default function LocationsFilters({ viewMode = "orgs" }) {
     </div>
   );
 }
-
-
