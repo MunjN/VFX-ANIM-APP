@@ -27,6 +27,7 @@ import ContentTypeInsights from "./pages/ContentTypeInsights";
 import ServiceInsights from "./pages/ServiceInsights";
 import CustomMedmzDataInsights from "./pages/CustomMedmzDataInsights";
 import InfraVisualize from "./pages/infraVisualize";
+import LocationsVisualizePage from "./pages/LocationsVisualizePage";
 
 import FunctionalTypesVisualize from "./pages/FunctionalTypesVisualize";
 import ContentTypesVisualize from "./pages/contentTypesVisualize";
@@ -163,6 +164,7 @@ export default function App() {
           <Route path="/participants/organizations/production-locations" element={<ProductionLocations />} />
           <Route path="/participants/organizations/production-locations/regions/:region" element={<SalesRegionDetails />} />
           <Route path="/participants/organizations/production-locations/countries/:country" element={<CountryDetails />} />
+          <Route path="/participants/organizations/production-locations/visualize" element={<LocationsVisualizePage />} />
 
           {/* INFRA */}
           <Route path="/participants/organizations/infrastructure" element={<Infrastructure />} />
@@ -187,6 +189,7 @@ export default function App() {
     </HashRouter>
   );
 }
+
 
 
 
