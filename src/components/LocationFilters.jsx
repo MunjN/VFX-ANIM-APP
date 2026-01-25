@@ -11,7 +11,7 @@ import {
 
 import { getLocationPoints } from "../services/locationsApi";
 import { useViewFilterOptions } from "../hooks/useViewData";
-
+const base = import.meta.env.VITE_API_BASE;
 const BRAND = {
   primaryLightBlue: "#CEECF2",
   primaryDarkBlue: "#232073",
@@ -473,7 +473,7 @@ export default function LocationsFilters({ viewMode = "orgs" }) {
   // Orgs-table link only in orgs view (and pass the snapshot to avoid any stale URL)
   const orgsUrl = useMemo(() => {
     if (!isOrgsView) return "";
-    return buildMainOrgsUrlFromFilters("/participants/organizations", filters, {
+    return buildMainOrgsUrlFromFilters(base+"/participants/organizations", filters, {
       includeOrgIds: (filters.orgIds?.size || 0) > 0,
     });
   }, [filters, isOrgsView]);
@@ -902,3 +902,4 @@ export default function LocationsFilters({ viewMode = "orgs" }) {
     </div>
   );
 }
+
