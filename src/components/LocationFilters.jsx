@@ -473,7 +473,7 @@ export default function LocationsFilters({ viewMode = "orgs" }) {
   // Orgs-table link only in orgs view (and pass the snapshot to avoid any stale URL)
   const orgsUrl = useMemo(() => {
     if (!isOrgsView) return "";
-    return buildMainOrgsUrlFromFilters(base+"/participants/organizations", filters, {
+    return buildMainOrgsUrlFromFilters(`${base}/participants/organizations`, filters, {
       includeOrgIds: (filters.orgIds?.size || 0) > 0,
     });
   }, [filters, isOrgsView]);
@@ -902,4 +902,5 @@ export default function LocationsFilters({ viewMode = "orgs" }) {
     </div>
   );
 }
+
 
