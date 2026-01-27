@@ -465,29 +465,37 @@ export default function ModifyOrganizations() {
     });
   }
 
-  function validateDraftLocally() {
-    const org = draft.org || {};
-    const locs = draft.locations || [];
+function validateDraftLocally() {
+  const org = draft.org || {};
+  const locs = draft.locations || [];
 
-    const errs = [];
-    if (!String(org.ORG_NAME || "").trim()) errs.push("ORG_NAME is required.");
-    if (!String(org.ORG_SIZING_CALCULATED || "").trim()) errs.push("ORG_SIZING_CALCULATED is required.");
-    if (org.ADJUSTED_EMPLOYEE_COUNT === "" || org.ADJUSTED_EMPLOYEE_COUNT == null) errs.push("ADJUSTED_EMPLOYEE_COUNT is required.");
+  const errs = [];
+  if (!String(org.ORG_NAME || "").trim()) errs.push("ORG_NAME is required.");
+  if (!String(org.ORG_SIZING_CALCULATED || "").trim()) errs.push("ORG_SIZING_CALCULATED is required.");
+  if (org.ADJUSTED_EMPLOYEE_COUNT === "" || org.ADJUSTED_EMPLOYEE_COUNT == null)
+    errs.push("ADJUSTED_EMPLOYEE_COUNT is required.");
 
-    if (!locs.length) errs.push("At least one location is required.");
-    if (locs.length && !locs.some((l) => !!l.HEADQUARTERS)) errs.push("At least one location must be HEADQUARTERS.");
+  if (!locs.length) errs.push("At least one location is required.");
 
-    for (let i = 0; i < locs.length; i++) {
-      const l = locs[i];
-      if (!String(l.CITY || "").trim()) errs.push(`locations[${i}].CITY is required.`);
-      if (!String(l.SALES_REGION || "").trim()) errs.push(`locations[${i}].SALES_REGION is required.`);
-      if (!String(l.GEONAME_COUNTRY_NAME || "").trim()) errs.push(`locations[${i}].GEONAME_COUNTRY_NAME is required.`);
-      if (l.LATITUDE === "" || l.LATITUDE == null) errs.push(`locations[${i}].LATITUDE is required.`);
-      if (l.LONGITUDE === "" || l.LONGITUDE == null) errs.push(`locations[${i}].LONGITUDE is required.`);
-    }
+  const hqCount = locs.filter((l) => !!l.HEADQUARTERS).length;
+  if (locs.length && hqCount !== 1) errs.push("Exactly one location must be HEADQUARTERS.");
 
-    return errs;
+  for (let i = 0; i < locs.length; i++) {
+    const l = locs[i];
+
+    // CITY is optional now (no required check)
+
+    if (!String(l.SALES_REGION || "").trim()) errs.push(`locations[${i}].SALES_REGION is required.`);
+    if (!String(l.GEONAME_COUNTRY_NAME || "").trim()) errs.push(`locations[${i}].GEONAME_COUNTRY_NAME is required.`);
+
+    // LAT/LONG optional, but must be paired if provided
+    const hasLat = l.LATITUDE !== "" && l.LATITUDE != null;
+    const hasLng = l.LONGITUDE !== "" && l.LONGITUDE != null;
+    if (hasLat !== hasLng) errs.push(`locations[${i}].LATITUDE and LONGITUDE must both be set, or both be blank.`);
   }
+
+  return errs;
+}
 
   async function onCreate() {
     const errs = validateDraftLocally();
