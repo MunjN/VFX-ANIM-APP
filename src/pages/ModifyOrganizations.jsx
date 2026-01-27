@@ -875,7 +875,7 @@ function validateDraftLocally() {
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
                     <div>
-                      <FieldLabel>CITY *</FieldLabel>
+                      <FieldLabel>CITY </FieldLabel>
                       <Input
                         value={l.CITY}
                         onChange={(v) =>
@@ -921,7 +921,7 @@ function validateDraftLocally() {
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                       <div>
-                        <FieldLabel>LATITUDE *</FieldLabel>
+                        <FieldLabel>LATITUDE </FieldLabel>
                         <Input
                           type="number"
                           value={l.LATITUDE}
@@ -936,7 +936,7 @@ function validateDraftLocally() {
                         />
                       </div>
                       <div>
-                        <FieldLabel>LONGITUDE *</FieldLabel>
+                        <FieldLabel>LONGITUDE </FieldLabel>
                         <Input
                           type="number"
                           value={l.LONGITUDE}
