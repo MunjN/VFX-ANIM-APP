@@ -40,18 +40,141 @@ import BookmarksModal from "./bookmarks/BookmarksModal.jsx";
 
 const BRAND_PURPLE = "#1d186d";
 
+// function AppShell() {
+//   const navigate = useNavigate();
+//   const { logout } = useAuth();
+//   const [isBookmarksOpen, setIsBookmarksOpen] = React.useState(false);
+
+//   const goToInsights = () => navigate("/participants/organizations/insights/orgs");
+
+//   return (
+//     <div className="min-h-screen bg-white">
+//       <div
+//         className="w-full flex items-center justify-between px-6 py-4 text-white sticky top-0 z-50"
+//         style={{ backgroundColor: BRAND_PURPLE }}
+//       >
+//         <button
+//           type="button"
+//           onClick={() => navigate("/")}
+//           className="flex items-center"
+//           style={{ background: "transparent", border: "none", padding: 0, cursor: "pointer" }}
+//           title="Go to home"
+//         >
+//           <div className="text-xl font-bold tracking-wide">ME-DMZ</div>
+//         </button>
+
+//         <div className="flex items-center gap-3">
+//           {/* AI Infra Deployment (filled + accent, first from the left) */}
+//           <a
+//             href="https://ai-aws.me-dmz.com"
+//             target="_blank"
+//             rel="noreferrer"
+//             className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white"
+//             style={{
+//               backgroundColor: "#CFEFF7",
+//               color: BRAND_PURPLE,
+//               borderColor: "rgba(255,255,255,0.65)",
+//               boxShadow: "0 10px 26px rgba(0,0,0,0.18)",
+//             }}
+//             title="Open AI Infra Deployment"
+//           >
+//             AI Infra Deployment
+//           </a>
+
+//           <button
+//             type="button"
+//             onClick={() => setIsBookmarksOpen(true)}
+//             className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white text-white"
+//             style={{ backgroundColor: "transparent" }}
+//           >
+//             Bookmarks
+//           </button>
+
+//           {/* ✅ NEW: ME-DMZ Insights button (between Bookmarks and Sign out) */}
+//           <button
+//             type="button"
+//             onClick={goToInsights}
+//             className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white text-white"
+//             style={{ backgroundColor: "transparent" }}
+//             title="Open ME-DMZ Insights"
+//           >
+//             ME-DMZ Insights
+//           </button>
+
+//           <button
+//             type="button"
+//             onClick={() => logout({ redirect: true })}
+//             className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white text-white"
+//             style={{ backgroundColor: "transparent" }}
+//           >
+//             Sign out
+//           </button>
+//         </div>
+//       </div>
+
+//       <BookmarksModal isOpen={isBookmarksOpen} onClose={() => setIsBookmarksOpen(false)} />
+
+//       <div className="min-h-[calc(100vh-64px)]">
+//         <Outlet />
+//       </div>
+//     </div>
+//   );
+// }
+
+const BRAND = {
+  purple: "#1d186d",
+  ink: "#1E2A78",
+  fill: "#CFEFF7",
+  bg: "#F7FBFE",
+  line: "rgba(30,42,120,0.16)",
+};
+
+function decodeJwtPayload(token) {
+  try {
+    const part = token.split(".")[1];
+    const json = atob(part.replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(json);
+  } catch {
+    return {};
+  }
+}
+
+function getEmailFromIdToken() {
+  try {
+    const t = window.sessionStorage.getItem("id_token") || "";
+    const p = decodeJwtPayload(t);
+    return String(p?.email || p?.["cognito:username"] || "").toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
 function AppShell() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const [isBookmarksOpen, setIsBookmarksOpen] = React.useState(false);
 
+  const email = React.useMemo(() => getEmailFromIdToken(), []);
+  const isAdmin = email.endsWith("@me-dmz.com");
+
   const goToInsights = () => navigate("/participants/organizations/insights/orgs");
+
+  const adminBtnStyle = {
+    backgroundColor: BRAND.fill,
+    color: BRAND.purple,
+    borderColor: "rgba(255,255,255,0.65)",
+    boxShadow: "0 10px 26px rgba(0,0,0,0.18)",
+  };
+
+  const ghostBtnStyle = {
+    backgroundColor: "transparent",
+  };
 
   return (
     <div className="min-h-screen bg-white">
       <div
         className="w-full flex items-center justify-between px-6 py-4 text-white sticky top-0 z-50"
-        style={{ backgroundColor: BRAND_PURPLE }}
+        style={{ backgroundColor: BRAND.purple }}
       >
         <button
           type="button"
@@ -70,32 +193,51 @@ function AppShell() {
             target="_blank"
             rel="noreferrer"
             className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white"
-            style={{
-              backgroundColor: "#CFEFF7",
-              color: BRAND_PURPLE,
-              borderColor: "rgba(255,255,255,0.65)",
-              boxShadow: "0 10px 26px rgba(0,0,0,0.18)",
-            }}
+            style={adminBtnStyle}
             title="Open AI Infra Deployment"
           >
             AI Infra Deployment
           </a>
 
+          {/* ✅ Admin-only buttons */}
+          {isAdmin ? (
+            <>
+              <button
+                type="button"
+                onClick={() => navigate("/admin/modify-organizations")}
+                className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white"
+                style={adminBtnStyle}
+                title="Admin: Modify organizations"
+              >
+                Modify Participant Organizations
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate("/admin/modify-infra")}
+                className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white"
+                style={adminBtnStyle}
+                title="Admin: Modify infrastructure"
+              >
+                Modify Infrastructure Tools
+              </button>
+            </>
+          ) : null}
+
           <button
             type="button"
             onClick={() => setIsBookmarksOpen(true)}
             className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white text-white"
-            style={{ backgroundColor: "transparent" }}
+            style={ghostBtnStyle}
           >
             Bookmarks
           </button>
 
-          {/* ✅ NEW: ME-DMZ Insights button (between Bookmarks and Sign out) */}
           <button
             type="button"
             onClick={goToInsights}
             className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white text-white"
-            style={{ backgroundColor: "transparent" }}
+            style={ghostBtnStyle}
             title="Open ME-DMZ Insights"
           >
             ME-DMZ Insights
@@ -105,7 +247,7 @@ function AppShell() {
             type="button"
             onClick={() => logout({ redirect: true })}
             className="px-4 py-2 rounded-lg font-semibold hover:opacity-95 border border-white text-white"
-            style={{ backgroundColor: "transparent" }}
+            style={ghostBtnStyle}
           >
             Sign out
           </button>
@@ -120,6 +262,7 @@ function AppShell() {
     </div>
   );
 }
+
 
 export default function App() {
   return (
@@ -193,6 +336,7 @@ export default function App() {
     </HashRouter>
   );
 }
+
 
 
 
