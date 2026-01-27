@@ -602,10 +602,10 @@ export default function ModifyInfrastructure() {
         <div style={{ display: "grid", gap: 14 }}>
           <Card
             title="Search & Select"
-            subtitle="Type a name — results come from /api/infra?q=… (ranked server-side)."
+            subtitle=""
             right={<Pill>{searchLoading ? "Searching…" : `${results.length} shown · ${total} total`}</Pill>}
           >
-            <FieldLabel>Infra name</FieldLabel>
+            <FieldLabel>Infrastructure Tool Name</FieldLabel>
             <Input value={q} onChange={onQueryChange} placeholder="Type at least 2 characters…" />
 
             <div style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -617,7 +617,7 @@ export default function ModifyInfrastructure() {
                     setDraft(buildInitialDraft());
                   }}
                 >
-                  New infra
+                  New Infra ISV
                 </SmallButton>
               </div>
 
@@ -699,10 +699,10 @@ export default function ModifyInfrastructure() {
 
         {/* RIGHT */}
         <div style={{ display: "grid", gap: 14 }}>
-          <Card title="Infrastructure Core" subtitle="Strict validation: name, description, parent org, API flags, release + version, and core enums required.">
+          <Card title="Infrastructure Core" subtitle="">
             <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 0.8fr", gap: 12 }}>
               <div>
-                <FieldLabel>INFRA_NAME *</FieldLabel>
+                <FieldLabel>Infrastructure ISV Name *</FieldLabel>
                 <Input
                   value={draft.infra.INFRA_NAME}
                   onChange={(v) => setDraft((p) => ({ ...p, infra: { ...p.infra, INFRA_NAME: v } }))}
@@ -711,7 +711,7 @@ export default function ModifyInfrastructure() {
               </div>
 
               <div>
-                <FieldLabel>INFRA_RELEASE_DATE *</FieldLabel>
+                <FieldLabel>Infrastructure Release Date *</FieldLabel>
                 <Input
                   type="number"
                   value={draft.infra.INFRA_RELEASE_DATE}
@@ -721,7 +721,7 @@ export default function ModifyInfrastructure() {
               </div>
 
               <div>
-                <FieldLabel>INFRA_LATEST_VERSION *</FieldLabel>
+                <FieldLabel>Infrastructure Release Version *</FieldLabel>
                 <Input
                   value={draft.infra.INFRA_LATEST_VERSION}
                   onChange={(v) => setDraft((p) => ({ ...p, infra: { ...p.infra, INFRA_LATEST_VERSION: v } }))}
@@ -731,7 +731,7 @@ export default function ModifyInfrastructure() {
             </div>
 
             <div style={{ marginTop: 14 }}>
-              <FieldLabel>INFRA_DESCRIPTION *</FieldLabel>
+              <FieldLabel>Infrastructure ISV Description *</FieldLabel>
               <TextArea
                 value={draft.infra.INFRA_DESCRIPTION}
                 onChange={(v) => setDraft((p) => ({ ...p, infra: { ...p.infra, INFRA_DESCRIPTION: v } }))}
@@ -742,7 +742,7 @@ export default function ModifyInfrastructure() {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
               <div>
-                <FieldLabel>INFRA_PARENT_ORGANIZATION *</FieldLabel>
+                <FieldLabel>Infrastructure Parent Organization *</FieldLabel>
                 <SearchableSingleSelect
                   value={draft.infra.INFRA_PARENT_ORGANIZATION}
                   onChange={(v) =>
@@ -760,7 +760,7 @@ export default function ModifyInfrastructure() {
                     checked={!!draft.infra.INFRA_IS_ACTIVE}
                     onChange={(e) => setDraft((p) => ({ ...p, infra: { ...p.infra, INFRA_IS_ACTIVE: e.target.checked } }))}
                   />
-                  Active
+                  Infrastructure Is Active
                 </label>
 
                 <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 1000, color: BRAND.ink }}>
@@ -769,16 +769,16 @@ export default function ModifyInfrastructure() {
                     checked={!!draft.infra.INFRA_HAS_API}
                     onChange={(e) => setDraft((p) => ({ ...p, infra: { ...p.infra, INFRA_HAS_API: e.target.checked } }))}
                   />
-                  Has API
+                  Infrastructure Has API
                 </label>
               </div>
             </div>
           </Card>
 
-          <Card title="Classification" subtitle="Required: license, functional type, structural type, yearly pricing.">
+          <Card title="Infrastructure Attributes" subtitle="">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
-                <FieldLabel>INFRA_LICENSE *</FieldLabel>
+                <FieldLabel>Infrastructure License *</FieldLabel>
                 <MultiSelect
                   value={draft.infra.INFRA_LICENSE}
                   onChange={(v) => setDraft((p) => ({ ...p, infra: { ...p.infra, INFRA_LICENSE: v } }))}
@@ -788,7 +788,7 @@ export default function ModifyInfrastructure() {
               </div>
 
               <div>
-                <FieldLabel>INFRA_YEARLY_CORPORATE_PRICING *</FieldLabel>
+                <FieldLabel>Infrastructure Yearly Corporate Pricing *</FieldLabel>
                 <MultiSelect
                   value={draft.infra.INFRA_YEARLY_CORPORATE_PRICING}
                   onChange={(v) => setDraft((p) => ({ ...p, infra: { ...p.infra, INFRA_YEARLY_CORPORATE_PRICING: v } }))}
@@ -798,7 +798,7 @@ export default function ModifyInfrastructure() {
               </div>
 
               <div>
-                <FieldLabel>INFRA_FUNCTIONAL_TYPE *</FieldLabel>
+                <FieldLabel>Infrastructure Functional Types *</FieldLabel>
                 <MultiSelect
                   value={draft.infra.INFRA_FUNCTIONAL_TYPE}
                   onChange={(v) => setDraft((p) => ({ ...p, infra: { ...p.infra, INFRA_FUNCTIONAL_TYPE: v } }))}
@@ -808,7 +808,7 @@ export default function ModifyInfrastructure() {
               </div>
 
               <div>
-                <FieldLabel>INFRA_STRUCTURAL_TYPE *</FieldLabel>
+                <FieldLabel>Infrastructure Structural Types *</FieldLabel>
                 <MultiSelect
                   value={draft.infra.INFRA_STRUCTURAL_TYPE}
                   onChange={(v) => setDraft((p) => ({ ...p, infra: { ...p.infra, INFRA_STRUCTURAL_TYPE: v } }))}
@@ -819,10 +819,10 @@ export default function ModifyInfrastructure() {
             </div>
           </Card>
 
-          <Card title="Related Tags" subtitle="Optional: related services + content types. (You said these are the only optional fields.)">
+          <Card title="Related Services & Content Types"">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
-                <FieldLabel>INFRA_RELATED_SERVICES</FieldLabel>
+                <FieldLabel>Infrastructure Related Services</FieldLabel>
                 <MultiSelect
                   value={draft.infra.INFRA_RELATED_SERVICES}
                   onChange={(v) => setDraft((p) => ({ ...p, infra: { ...p.infra, INFRA_RELATED_SERVICES: v } }))}
@@ -832,7 +832,7 @@ export default function ModifyInfrastructure() {
               </div>
 
               <div>
-                <FieldLabel>INFRA_RELATED_CONTENT_TYPES</FieldLabel>
+                <FieldLabel>Infrastructure Related Content Types</FieldLabel>
                 <MultiSelect
                   value={draft.infra.INFRA_RELATED_CONTENT_TYPES}
                   onChange={(v) => setDraft((p) => ({ ...p, infra: { ...p.infra, INFRA_RELATED_CONTENT_TYPES: v } }))}
