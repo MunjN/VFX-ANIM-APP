@@ -819,7 +819,7 @@ export default function ModifyInfrastructure() {
             </div>
           </Card>
 
-          <Card title="Related Services & Content Types"">
+          <Card title="Related Services & Content Types">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <FieldLabel>Infrastructure Related Services</FieldLabel>
