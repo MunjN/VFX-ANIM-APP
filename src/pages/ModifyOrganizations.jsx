@@ -272,6 +272,19 @@ function MultiSelect({ value, onChange, options, placeholder = "Search…", maxH
   );
 }
 
+function SearchableSingleSelect({ value, onChange, options, placeholder = "Search…" }) {
+  return (
+    <MultiSelect
+      value={value ? [value] : []}
+      onChange={(arr) => onChange((arr || [])[0] || "")} // keep only first selection
+      options={options}
+      placeholder={placeholder}
+      maxHeight={180}
+    />
+  );
+}
+
+
 function buildInitialDraft() {
   return {
     org: {
@@ -906,7 +919,7 @@ function validateDraftLocally() {
 
                     <div>
                       <FieldLabel>Geoname Country Name *</FieldLabel>
-                      <Select
+                      <SearchableSingleSelect
                         value={l.GEONAME_COUNTRY_NAME}
                         onChange={(v) =>
                           setDraft((p) => {
@@ -916,6 +929,7 @@ function validateDraftLocally() {
                           })
                         }
                         options={countryOptions}
+                        placeholder="Search countries…"
                       />
                     </div>
 
