@@ -1,6 +1,6 @@
 // src/pages/ModifyOrganizations.jsx
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import adminOrgsApi from "../api/adminOrgsApi";
+import { searchOrgs, getOrgById, createOrg, patchOrg, deleteOrg } from "../api/adminOrgsApi";
 
 const BRAND = {
   purple: "#1d186d",
@@ -256,9 +256,7 @@ function MultiSelect({ value, onChange, options, placeholder = "Search…", maxH
               </button>
             );
           })}
-          {!filtered.length ? (
-            <div style={{ padding: 12, opacity: 0.7, fontWeight: 800 }}>No matches</div>
-          ) : null}
+          {!filtered.length ? <div style={{ padding: 12, opacity: 0.7, fontWeight: 800 }}>No matches</div> : null}
         </div>
       </div>
 
@@ -306,16 +304,19 @@ function buildInitialDraft() {
 
 function normalizeOrgPayload(draft) {
   const org = { ...(draft.org || {}) };
-
-  // Don’t send ORG_ID in payload
   delete org.ORG_ID;
 
-  // Normalize lists
-  for (const k of ["ORG_FUNCTIONAL_TYPE", "SERVICES", "CONTENT_TYPES", "INFRASTRUCTURE_TOOLS", "SALES_REGION", "GEONAME_COUNTRY_NAME"]) {
+  for (const k of [
+    "ORG_FUNCTIONAL_TYPE",
+    "SERVICES",
+    "CONTENT_TYPES",
+    "INFRASTRUCTURE_TOOLS",
+    "SALES_REGION",
+    "GEONAME_COUNTRY_NAME",
+  ]) {
     if (org[k] != null) org[k] = uniq(asList(org[k]));
   }
 
-  // ints/bools
   if (org.ADJUSTED_EMPLOYEE_COUNT !== "" && org.ADJUSTED_EMPLOYEE_COUNT != null) {
     org.ADJUSTED_EMPLOYEE_COUNT = Math.trunc(Number(org.ADJUSTED_EMPLOYEE_COUNT));
   }
@@ -344,13 +345,13 @@ export default function ModifyOrganizations() {
 
   const [filtersMeta, setFiltersMeta] = useState(null);
 
-  // left pane
+  // search pane
   const [q, setQ] = useState("");
-  const [suggestLoading, setSuggestLoading] = useState(false);
-  const [matches, setMatches] = useState([]);
-  const [shouldEdit, setShouldEdit] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [results, setResults] = useState([]);
+  const [total, setTotal] = useState(0);
 
-  // editor state
+  // editor
   const [mode, setMode] = useState("create"); // "create" | "edit"
   const [selectedOrgId, setSelectedOrgId] = useState("");
   const [draft, setDraft] = useState(buildInitialDraft());
@@ -361,7 +362,6 @@ export default function ModifyOrganizations() {
   const debounceRef = useRef(null);
 
   useEffect(() => {
-    // existing public endpoint used elsewhere; safe to reuse for dropdown values
     (async () => {
       try {
         const res = await fetch(`${base}/api/orgs/filters`, { cache: "no-store" });
@@ -373,54 +373,49 @@ export default function ModifyOrganizations() {
     })();
   }, []);
 
-  useEffect(() => {
-    setToast({ type: "", msg: "" });
-  }, [mode, selectedOrgId]);
+  useEffect(() => setToast({ type: "", msg: "" }), [mode, selectedOrgId]);
 
   function showToast(type, msg) {
     setToast({ type, msg });
     window.setTimeout(() => setToast((t) => (t.msg === msg ? { type: "", msg: "" } : t)), 5000);
   }
 
-  async function runSuggest(nextQ) {
+  async function runSearch(nextQ) {
     const text = String(nextQ || "").trim();
     if (text.length < 2) {
-      setMatches([]);
-      setShouldEdit(false);
+      setResults([]);
+      setTotal(0);
       return;
     }
-    setSuggestLoading(true);
+    setSearchLoading(true);
     try {
-      const out = await adminOrgsApi.suggest(text);
-      setMatches(out?.matches || []);
-      setShouldEdit(!!out?.shouldEdit);
+      const out = await searchOrgs({ q: text, page: 1, pageSize: 12 });
+      setResults(out?.data || []);
+      setTotal(Number(out?.total || 0));
     } catch (e) {
-      setMatches([]);
-      setShouldEdit(false);
-      showToast("error", e?.message || "Suggest failed");
+      setResults([]);
+      setTotal(0);
+      showToast("error", e?.message || "Search failed");
     } finally {
-      setSuggestLoading(false);
+      setSearchLoading(false);
     }
   }
 
   function onQueryChange(v) {
     setQ(v);
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => runSuggest(v), 220);
+    debounceRef.current = setTimeout(() => runSearch(v), 220);
   }
 
   async function loadOrgIntoEditor(orgId) {
     setBusy(true);
     try {
-      const res = await fetch(`${base}/api/orgs/${encodeURIComponent(orgId)}`, { cache: "no-store" });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || `Failed to load org (${res.status})`);
+      const json = await getOrgById(orgId);
 
       const org = json || {};
       const locations = Array.isArray(json?.locations) ? json.locations : [];
       const identifiers = Array.isArray(json?.identifiers) ? json.identifiers : [];
 
-      // hydrate draft (keep required fields visible + editable)
       setDraft({
         org: {
           ORG_NAME: org.ORG_NAME || "",
@@ -501,17 +496,21 @@ export default function ModifyOrganizations() {
     setBusy(true);
     try {
       const payload = normalizeOrgPayload(draft);
-      const out = await adminOrgsApi.create(payload);
+      const out = await createOrg(payload);
       showToast("ok", `Created: ${out?.orgName || "org"} (${out?.orgId || "?"})`);
-
-      // switch to edit mode & load it for fidelity
       if (out?.orgId) await loadOrgIntoEditor(out.orgId);
       else setMode("create");
     } catch (e) {
       if (e?.status === 409) {
-        setMatches(e?.data?.matches || []);
-        setShouldEdit(true);
-        showToast("error", "Duplicate detected. Select an existing org to edit, or enable Force Create and retry.");
+        // If backend returns similarity matches, surface them in the results list
+        const m = e?.data?.matches || [];
+        if (m?.length) {
+          // map into org-ish cards so user can click to edit
+          const pseudo = m.map((x) => ({ ORG_ID: x.orgId, ORG_NAME: x.name, _score: x.score }));
+          setResults(pseudo);
+          setTotal(pseudo.length);
+        }
+        showToast("error", "Duplicate detected. Select existing org to edit, or enable Force Create and retry.");
       } else {
         showToast("error", e?.message || "Create failed");
       }
@@ -528,9 +527,8 @@ export default function ModifyOrganizations() {
     setBusy(true);
     try {
       const payload = normalizeOrgPayload(draft);
-      // PATCH payload should NOT include forceCreate (not used for edit); harmless if included, but we’ll omit.
       const { org, locations, identifiers } = payload;
-      await adminOrgsApi.patch(selectedOrgId, { org, locations, identifiers });
+      await patchOrg(selectedOrgId, { org, locations, identifiers });
       showToast("ok", "Saved changes");
       await loadOrgIntoEditor(selectedOrgId);
     } catch (e) {
@@ -547,13 +545,13 @@ export default function ModifyOrganizations() {
 
     setBusy(true);
     try {
-      await adminOrgsApi.remove(selectedOrgId);
+      await deleteOrg(selectedOrgId);
       showToast("ok", "Deleted org");
       setMode("create");
       setSelectedOrgId("");
       setDraft(buildInitialDraft());
-      setMatches([]);
-      setShouldEdit(false);
+      setResults([]);
+      setTotal(0);
       setQ("");
     } catch (e) {
       showToast("error", e?.message || "Delete failed");
@@ -582,46 +580,35 @@ export default function ModifyOrganizations() {
 
   return (
     <div style={{ padding: 18, background: BRAND.bg, minHeight: "calc(100vh - 64px)" }}>
-      {/* page header */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 12,
-          marginBottom: 14,
-        }}
-      >
+      {/* header */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 14 }}>
         <div style={{ display: "grid", gap: 6 }}>
           <div style={{ fontSize: 20, fontWeight: 1100, color: BRAND.purple }}>Modify Organizations</div>
           <div style={{ fontWeight: 900, opacity: 0.75 }}>
-            Admin-only create/edit/delete. Uses strict server validation + duplicate guard.
+            Admin-only create/edit/delete. Search uses <code style={{ fontWeight: 900 }}>/api/orgs?q=</code>.
           </div>
         </div>
 
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           {mode === "edit" && selectedOrgId ? <Pill>Editing: {selectedOrgId}</Pill> : <Pill>Create mode</Pill>}
-          {toast?.msg ? (
-            <Pill>{toast.type === "error" ? "⚠️" : "✅"} {toast.msg}</Pill>
-          ) : null}
+          {toast?.msg ? <Pill>{toast.type === "error" ? "⚠️" : "✅"} {toast.msg}</Pill> : null}
         </div>
       </div>
 
       {/* layout */}
       <div style={{ display: "grid", gridTemplateColumns: "380px 1fr", gap: 14 }}>
-        {/* LEFT: search & select */}
+        {/* LEFT */}
         <div style={{ display: "grid", gap: 14 }}>
           <Card
             title="Search & Select"
-            subtitle="Suggest checks the DB and returns similarity-ranked matches."
-            right={<Pill>{suggestLoading ? "Searching…" : `${matches.length} matches`}</Pill>}
+            subtitle="Type a name — results come from /api/orgs?q=… (ranked server-side)."
+            right={<Pill>{searchLoading ? "Searching…" : `${results.length} shown · ${total} total`}</Pill>}
           >
             <FieldLabel>Org name</FieldLabel>
             <Input value={q} onChange={onQueryChange} placeholder="Type at least 2 characters…" />
 
             <div style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <Pill>{shouldEdit ? "Strong match detected" : "No strong match"}</Pill>
                 <SmallButton
                   onClick={() => {
                     setMode("create");
@@ -644,37 +631,42 @@ export default function ModifyOrganizations() {
             </div>
 
             <div style={{ marginTop: 12, borderTop: `1px solid ${BRAND.line}`, paddingTop: 12 }}>
-              <div style={{ fontWeight: 1000, color: BRAND.ink, marginBottom: 10 }}>Matches</div>
+              <div style={{ fontWeight: 1000, color: BRAND.ink, marginBottom: 10 }}>Results</div>
 
               <div style={{ display: "grid", gap: 8 }}>
-                {(matches || []).slice(0, 12).map((m) => (
+                {(results || []).slice(0, 12).map((r) => (
                   <button
-                    key={`${m.orgId}-${m.name}`}
+                    key={r.ORG_ID || r._id || `${r.ORG_NAME}-${Math.random()}`}
                     type="button"
-                    onClick={() => m.orgId && loadOrgIntoEditor(m.orgId)}
+                    onClick={() => r.ORG_ID && loadOrgIntoEditor(r.ORG_ID)}
                     style={{
                       textAlign: "left",
                       borderRadius: 16,
                       border: `1px solid ${BRAND.line}`,
                       padding: 12,
                       background: "white",
-                      cursor: "pointer",
+                      cursor: r.ORG_ID ? "pointer" : "not-allowed",
+                      opacity: r.ORG_ID ? 1 : 0.7,
                     }}
-                    title="Load into editor"
+                    title={r.ORG_ID ? "Load into editor" : "Missing ORG_ID"}
                   >
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                      <div style={{ fontWeight: 1100, color: BRAND.purple }}>{m.name || "—"}</div>
-                      <Pill>{(m.score ?? 0).toFixed(3)}</Pill>
+                      <div style={{ fontWeight: 1100, color: BRAND.purple }}>{r.ORG_NAME || "—"}</div>
+                      {typeof r._score === "number" ? <Pill>{r._score.toFixed(3)}</Pill> : null}
                     </div>
                     <div style={{ marginTop: 6, opacity: 0.75, fontWeight: 900, fontSize: 12 }}>
-                      Org ID: {m.orgId || "—"}
+                      <div>Org ID: {r.ORG_ID || "—"}</div>
+                      <div style={{ marginTop: 2 }}>
+                        {(r.GEONAME_COUNTRY_NAME ? `Country: ${r.GEONAME_COUNTRY_NAME}` : "")}
+                        {r.ORG_SIZING_CALCULATED ? ` · Size: ${r.ORG_SIZING_CALCULATED}` : ""}
+                      </div>
                     </div>
                   </button>
                 ))}
 
-                {!matches?.length ? (
+                {!results?.length ? (
                   <div style={{ opacity: 0.7, fontWeight: 900, padding: 10 }}>
-                    No results yet. Type a name above to see matches.
+                    No results yet. Type a name above.
                   </div>
                 ) : null}
               </div>
@@ -701,7 +693,7 @@ export default function ModifyOrganizations() {
           </Card>
         </div>
 
-        {/* RIGHT: editor */}
+        {/* RIGHT */}
         <div style={{ display: "grid", gap: 14 }}>
           <Card title="Organization Core" subtitle="Strict validation: name, sizing, and adjusted employee count are required.">
             <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 0.8fr", gap: 12 }}>
@@ -728,9 +720,7 @@ export default function ModifyOrganizations() {
                 <Input
                   type="number"
                   value={draft.org.ADJUSTED_EMPLOYEE_COUNT}
-                  onChange={(v) =>
-                    setDraft((p) => ({ ...p, org: { ...p.org, ADJUSTED_EMPLOYEE_COUNT: clampNum(v) } }))
-                  }
+                  onChange={(v) => setDraft((p) => ({ ...p, org: { ...p.org, ADJUSTED_EMPLOYEE_COUNT: clampNum(v) } }))}
                   placeholder="e.g., 120"
                 />
               </div>
@@ -781,9 +771,7 @@ export default function ModifyOrganizations() {
                 <input
                   type="checkbox"
                   checked={!!draft.org.ORG_IS_ULTIMATE_PARENT}
-                  onChange={(e) =>
-                    setDraft((p) => ({ ...p, org: { ...p.org, ORG_IS_ULTIMATE_PARENT: e.target.checked } }))
-                  }
+                  onChange={(e) => setDraft((p) => ({ ...p, org: { ...p.org, ORG_IS_ULTIMATE_PARENT: e.target.checked } }))}
                 />
                 Ultimate parent
               </label>
@@ -868,7 +856,6 @@ export default function ModifyOrganizations() {
                         setDraft((p) => {
                           const next = (p.locations || []).slice();
                           next.splice(idx, 1);
-                          // if removed HQ, promote first location
                           if (next.length && !next.some((x) => x.HEADQUARTERS)) next[0].HEADQUARTERS = true;
                           return { ...p, locations: next };
                         })
@@ -1039,9 +1026,7 @@ export default function ModifyOrganizations() {
               ))}
 
               {!draft.identifiers?.length ? (
-                <div style={{ opacity: 0.7, fontWeight: 900 }}>
-                  No identifiers yet — add domains or external links if useful.
-                </div>
+                <div style={{ opacity: 0.7, fontWeight: 900 }}>No identifiers yet — add domains or external links if useful.</div>
               ) : null}
             </div>
           </Card>
