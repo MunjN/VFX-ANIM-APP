@@ -33,6 +33,7 @@ import FunctionalTypesVisualize from "./pages/FunctionalTypesVisualize";
 import ContentTypesVisualize from "./pages/contentTypesVisualize";
 import ServicesVisualize from "./pages/ServicesVisualize";
 import OrganizationsVisualize from "./pages/OrganizationsVisualize";
+import ModifyOrganizations from "./pages/ModifyOrganizations";
 
 import BookmarksModal from "./bookmarks/BookmarksModal.jsx";
 
@@ -154,6 +155,7 @@ export default function App() {
 
           <Route path="/participants/organizations/content-types" element={<ContentTypes />} />
           <Route path="/participants/organizations/services" element={<Services />} />
+          <Route path="/admin/modify-organizations" element={<ModifyOrganizations />} />
 
           <Route path="/participants/organizations/functional-types/visualize" element={<FunctionalTypesVisualize />} />
           <Route path="/participants/organizations/content-types/visualize" element={<ContentTypesVisualize />} />
@@ -189,6 +191,7 @@ export default function App() {
     </HashRouter>
   );
 }
+
 
 
 
