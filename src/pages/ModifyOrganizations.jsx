@@ -593,7 +593,7 @@ function validateDraftLocally() {
         <div style={{ display: "grid", gap: 6 }}>
           <div style={{ fontSize: 20, fontWeight: 1100, color: BRAND.purple }}>Modify Organizations</div>
           <div style={{ fontWeight: 900, opacity: 0.75 }}>
-            Admin-only create/edit/delete. Search uses <code style={{ fontWeight: 900 }}>/api/orgs?q=</code>.
+            
           </div>
         </div>
 
@@ -786,7 +786,7 @@ function validateDraftLocally() {
             </div>
           </Card>
 
-          <Card title="Tags" subtitle="Use DB-derived options (from /api/orgs/filters) to avoid strict enum rejection.">
+          <Card title="Participant Organization Attributes" subtitle="">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
                 <FieldLabel>Organization Services Offered</FieldLabel>
@@ -959,7 +959,7 @@ function validateDraftLocally() {
 
           <Card
             title="Identifiers (External URLs)"
-            subtitle="Optional. Domain must be a domain (no http, no path). External URL must be http(s)."
+            subtitle=""
             right={
               <SmallButton
                 onClick={() =>
