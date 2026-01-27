@@ -609,7 +609,7 @@ function validateDraftLocally() {
         <div style={{ display: "grid", gap: 14 }}>
           <Card
             title="Search & Select"
-            subtitle="Type a name — results come from /api/orgs?q=… (ranked server-side)."
+            subtitle="Type an Organization Name......"
             right={<Pill>{searchLoading ? "Searching…" : `${results.length} shown · ${total} total`}</Pill>}
           >
             <FieldLabel>Org name</FieldLabel>
@@ -703,10 +703,10 @@ function validateDraftLocally() {
 
         {/* RIGHT */}
         <div style={{ display: "grid", gap: 14 }}>
-          <Card title="Organization Core" subtitle="Strict validation: name, sizing, and adjusted employee count are required.">
+          <Card title="Organization Core" subtitle="Core Fields are Required.">
             <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.8fr 0.8fr", gap: 12 }}>
               <div>
-                <FieldLabel>ORG_NAME *</FieldLabel>
+                <FieldLabel>Participant Organization Name *</FieldLabel>
                 <Input
                   value={draft.org.ORG_NAME}
                   onChange={(v) => setDraft((p) => ({ ...p, org: { ...p.org, ORG_NAME: v } }))}
@@ -715,7 +715,7 @@ function validateDraftLocally() {
               </div>
 
               <div>
-                <FieldLabel>ORG_SIZING_CALCULATED *</FieldLabel>
+                <FieldLabel>Organization Sizing Range *</FieldLabel>
                 <Select
                   value={draft.org.ORG_SIZING_CALCULATED}
                   onChange={(v) => setDraft((p) => ({ ...p, org: { ...p.org, ORG_SIZING_CALCULATED: v } }))}
@@ -724,7 +724,7 @@ function validateDraftLocally() {
               </div>
 
               <div>
-                <FieldLabel>ADJUSTED_EMPLOYEE_COUNT *</FieldLabel>
+                <FieldLabel>Organization Employee Count *</FieldLabel>
                 <Input
                   type="number"
                   value={draft.org.ADJUSTED_EMPLOYEE_COUNT}
@@ -736,7 +736,7 @@ function validateDraftLocally() {
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 14 }}>
               <div>
-                <FieldLabel>ORG_FUNCTIONAL_TYPE</FieldLabel>
+                <FieldLabel>Organization Functional Type(s) *</FieldLabel>
                 <MultiSelect
                   value={draft.org.ORG_FUNCTIONAL_TYPE}
                   onChange={(v) => setDraft((p) => ({ ...p, org: { ...p.org, ORG_FUNCTIONAL_TYPE: v } }))}
@@ -745,7 +745,7 @@ function validateDraftLocally() {
               </div>
 
               <div>
-                <FieldLabel>PERSONA_SCORING (1–9)</FieldLabel>
+                <FieldLabel>Organization Persona Scoring (1–9)</FieldLabel>
                 <Input
                   type="number"
                   value={draft.org.PERSONA_SCORING}
@@ -755,7 +755,7 @@ function validateDraftLocally() {
               </div>
 
               <div>
-                <FieldLabel>ORG_ACTIVE_AS_OF_YEAR</FieldLabel>
+                <FieldLabel>Organization Active as of Year</FieldLabel>
                 <Input
                   type="number"
                   value={draft.org.ORG_ACTIVE_AS_OF_YEAR}
@@ -772,7 +772,7 @@ function validateDraftLocally() {
                   checked={!!draft.org.ORG_IS_ACTIVE}
                   onChange={(e) => setDraft((p) => ({ ...p, org: { ...p.org, ORG_IS_ACTIVE: e.target.checked } }))}
                 />
-                Active
+                Organization is Active
               </label>
 
               <label style={{ display: "flex", alignItems: "center", gap: 10, fontWeight: 1000, color: BRAND.ink }}>
@@ -781,7 +781,7 @@ function validateDraftLocally() {
                   checked={!!draft.org.ORG_IS_ULTIMATE_PARENT}
                   onChange={(e) => setDraft((p) => ({ ...p, org: { ...p.org, ORG_IS_ULTIMATE_PARENT: e.target.checked } }))}
                 />
-                Ultimate parent
+                Organization is Ultimate Parent
               </label>
             </div>
           </Card>
@@ -789,7 +789,7 @@ function validateDraftLocally() {
           <Card title="Tags" subtitle="Use DB-derived options (from /api/orgs/filters) to avoid strict enum rejection.">
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
-                <FieldLabel>SERVICES</FieldLabel>
+                <FieldLabel>Organization Services Offered</FieldLabel>
                 <MultiSelect
                   value={draft.org.SERVICES}
                   onChange={(v) => setDraft((p) => ({ ...p, org: { ...p.org, SERVICES: v } }))}
@@ -798,7 +798,7 @@ function validateDraftLocally() {
               </div>
 
               <div>
-                <FieldLabel>CONTENT_TYPES</FieldLabel>
+                <FieldLabel>Organization Content Types</FieldLabel>
                 <MultiSelect
                   value={draft.org.CONTENT_TYPES}
                   onChange={(v) => setDraft((p) => ({ ...p, org: { ...p.org, CONTENT_TYPES: v } }))}
@@ -807,7 +807,7 @@ function validateDraftLocally() {
               </div>
 
               <div style={{ gridColumn: "1 / -1" }}>
-                <FieldLabel>INFRASTRUCTURE_TOOLS</FieldLabel>
+                <FieldLabel>Organization Has Infrastructure</FieldLabel>
                 <MultiSelect
                   value={draft.org.INFRASTRUCTURE_TOOLS}
                   onChange={(v) => setDraft((p) => ({ ...p, org: { ...p.org, INFRASTRUCTURE_TOOLS: v } }))}
@@ -819,7 +819,7 @@ function validateDraftLocally() {
           </Card>
 
           <Card
-            title="Locations"
+            title="Organization Production Locations"
             subtitle="At least one location is required, and at least one must be HEADQUARTERS."
             right={
               <SmallButton
@@ -833,7 +833,7 @@ function validateDraftLocally() {
                   }))
                 }
               >
-                + Add location
+                + Add Production Location
               </SmallButton>
             }
           >
@@ -875,7 +875,7 @@ function validateDraftLocally() {
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
                     <div>
-                      <FieldLabel>CITY </FieldLabel>
+                      <FieldLabel>City </FieldLabel>
                       <Input
                         value={l.CITY}
                         onChange={(v) =>
@@ -890,7 +890,7 @@ function validateDraftLocally() {
                     </div>
 
                     <div>
-                      <FieldLabel>SALES_REGION *</FieldLabel>
+                      <FieldLabel>Sales Region *</FieldLabel>
                       <Select
                         value={l.SALES_REGION}
                         onChange={(v) =>
@@ -905,7 +905,7 @@ function validateDraftLocally() {
                     </div>
 
                     <div>
-                      <FieldLabel>GEONAME_COUNTRY_NAME *</FieldLabel>
+                      <FieldLabel>Geoname Country Name *</FieldLabel>
                       <Select
                         value={l.GEONAME_COUNTRY_NAME}
                         onChange={(v) =>
@@ -921,7 +921,7 @@ function validateDraftLocally() {
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                       <div>
-                        <FieldLabel>LATITUDE </FieldLabel>
+                        <FieldLabel>Latitude </FieldLabel>
                         <Input
                           type="number"
                           value={l.LATITUDE}
@@ -936,7 +936,7 @@ function validateDraftLocally() {
                         />
                       </div>
                       <div>
-                        <FieldLabel>LONGITUDE </FieldLabel>
+                        <FieldLabel>Longitude </FieldLabel>
                         <Input
                           type="number"
                           value={l.LONGITUDE}
@@ -958,7 +958,7 @@ function validateDraftLocally() {
           </Card>
 
           <Card
-            title="Identifiers"
+            title="Identifiers (External URLs)"
             subtitle="Optional. Domain must be a domain (no http, no path). External URL must be http(s)."
             right={
               <SmallButton
@@ -1002,7 +1002,7 @@ function validateDraftLocally() {
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 12, marginTop: 12 }}>
                     <div>
-                      <FieldLabel>ORG_DOMAIN</FieldLabel>
+                      <FieldLabel>Organization Domain</FieldLabel>
                       <Input
                         value={i.ORG_DOMAIN}
                         onChange={(v) =>
@@ -1016,7 +1016,7 @@ function validateDraftLocally() {
                       />
                     </div>
                     <div>
-                      <FieldLabel>ORG_IDENTIFIER_EXTERNAL_URL</FieldLabel>
+                      <FieldLabel>Organization LinkedIn URL</FieldLabel>
                       <Input
                         value={i.ORG_IDENTIFIER_EXTERNAL_URL}
                         onChange={(v) =>
