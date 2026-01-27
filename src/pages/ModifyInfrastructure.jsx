@@ -298,6 +298,19 @@ function MultiSelect({ value, onChange, options, placeholder = "Search…", maxH
   );
 }
 
+function SearchableSingleSelect({ value, onChange, options, placeholder = "Search…" }) {
+  return (
+    <MultiSelect
+      value={value ? [value] : []}
+      onChange={(arr) => onChange((arr || [])[0] || "")} // keep only first selection
+      options={options}
+      placeholder={placeholder}
+      maxHeight={180}
+    />
+  );
+}
+
+
 /* ---------------- Draft helpers ---------------- */
 
 function buildInitialDraft() {
@@ -730,10 +743,13 @@ export default function ModifyInfrastructure() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 14 }}>
               <div>
                 <FieldLabel>INFRA_PARENT_ORGANIZATION *</FieldLabel>
-                <Select
+                <SearchableSingleSelect
                   value={draft.infra.INFRA_PARENT_ORGANIZATION}
-                  onChange={(v) => setDraft((p) => ({ ...p, infra: { ...p.infra, INFRA_PARENT_ORGANIZATION: v } }))}
+                  onChange={(v) =>
+                    setDraft((p) => ({ ...p, infra: { ...p.infra, INFRA_PARENT_ORGANIZATION: v } }))
+                  }
                   options={parentOrgOptions}
+                  placeholder="Search Parent Organization…"
                 />
               </div>
 
