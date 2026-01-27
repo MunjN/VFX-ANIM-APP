@@ -757,7 +757,7 @@ function validateDraftLocally() {
               <div>
                 <FieldLabel>Organization Active as of Year</FieldLabel>
                 <Input
-                  type="number"
+                  type="number" min = "1900" max = "2026"
                   value={draft.org.ORG_ACTIVE_AS_OF_YEAR}
                   onChange={(v) => setDraft((p) => ({ ...p, org: { ...p.org, ORG_ACTIVE_AS_OF_YEAR: clampNum(v) } }))}
                   placeholder="Optional"
