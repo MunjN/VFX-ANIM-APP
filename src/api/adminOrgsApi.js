@@ -1,20 +1,31 @@
 // src/api/adminOrgsApi.js
 
-const API_BASE = import.meta.env.VITE_API_BASE || ""; // e.g. "https://c78ehaqlfg.execute-api.us-east-1.amazonaws.com"
-const ORGS_BASE = `${API_BASE}/api/orgs`;
+const RAW_BASE = import.meta.env.VITE_API_BASE || "https://c78ehaqlfg.execute-api.us-east-1.amazonaws.com";
+const API_BASE = RAW_BASE.replace(/\/+$/, ""); // strip trailing /
 
 function getIdToken() {
   return sessionStorage.getItem("id_token") || "";
 }
 
+function bestErrorMessage(json, status) {
+  if (!json) return `Request failed (${status})`;
+  if (Array.isArray(json.errors) && json.errors.length) return json.errors[0];
+  return json.error || json.message || `Request failed (${status})`;
+}
+
 async function apiFetch(path, { method = "GET", body, headers = {} } = {}) {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const url = `${API_BASE}${path}`;
+
+  const finalHeaders = { ...headers };
+  const hasBody = body !== undefined;
+
+  // only set content-type when we actually send JSON
+  if (hasBody) finalHeaders["Content-Type"] = "application/json; charset=utf-8";
+
+  const res = await fetch(url, {
     method,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      ...headers,
-    },
-    body: body ? JSON.stringify(body) : undefined,
+    headers: finalHeaders,
+    body: hasBody ? JSON.stringify(body) : undefined,
   });
 
   const text = await res.text();
@@ -26,7 +37,7 @@ async function apiFetch(path, { method = "GET", body, headers = {} } = {}) {
   }
 
   if (!res.ok) {
-    const err = new Error((json && (json.error || json.message)) || `Request failed (${res.status})`);
+    const err = new Error(bestErrorMessage(json, res.status));
     err.status = res.status;
     err.data = json;
     throw err;
@@ -36,62 +47,47 @@ async function apiFetch(path, { method = "GET", body, headers = {} } = {}) {
 }
 
 /**
- * SEARCH (public / not admin-guarded in your current backend)
- * Uses existing endpoint: GET /api/orgs?q=&page=&pageSize=
+ * SEARCH (public)
+ * GET /api/orgs?q=&page=&pageSize=
  */
-export async function searchOrgs({ q, page = 1, pageSize = 10, extraParams = {} }) {
+async function search({ q, page = 1, pageSize = 10, extraParams = {} }) {
   const params = new URLSearchParams({
     q: q || "",
     page: String(page),
     pageSize: String(pageSize),
-    ...Object.fromEntries(Object.entries(extraParams).map(([k, v]) => [k, String(v)])),
+    ...Object.fromEntries(
+      Object.entries(extraParams).map(([k, v]) => [k, String(v)])
+    ),
   });
 
   return apiFetch(`/api/orgs?${params.toString()}`, { method: "GET" });
 }
 
 /**
- * READ (public in your current backend)
+ * READ (public)
  * GET /api/orgs/:orgId
  */
-export async function getOrgById(orgId) {
+async function getById(orgId) {
   if (!orgId) throw new Error("orgId is required");
   return apiFetch(`/api/orgs/${encodeURIComponent(orgId)}`, { method: "GET" });
 }
 
-/**
- * ADMIN MUTATIONS (your new endpoints)
- * PATCH /api/orgs/:orgId
- */
-export async function patchOrg(orgId, payload) {
-  if (!orgId) throw new Error("orgId is required");
-
+function requireToken() {
   const token = getIdToken();
   if (!token) {
     const err = new Error("Missing id_token. Please log in again.");
     err.status = 401;
     throw err;
   }
-
-  return apiFetch(`/api/orgs/${encodeURIComponent(orgId)}`, {
-    method: "PATCH",
-    body: payload,
-    headers: { Authorization: `Bearer ${token}` },
-  });
+  return token;
 }
 
 /**
- * ADMIN CREATE (your new endpoints)
+ * ADMIN CREATE
  * POST /api/orgs
  */
-export async function createOrg(payload) {
-  const token = getIdToken();
-  if (!token) {
-    const err = new Error("Missing id_token. Please log in again.");
-    err.status = 401;
-    throw err;
-  }
-
+async function create(payload) {
+  const token = requireToken();
   return apiFetch(`/api/orgs`, {
     method: "POST",
     body: payload,
@@ -100,19 +96,32 @@ export async function createOrg(payload) {
 }
 
 /**
- * ADMIN DELETE (your new endpoints)
+ * ADMIN PATCH
+ * PATCH /api/orgs/:orgId
+ */
+async function patch(orgId, payload) {
+  if (!orgId) throw new Error("orgId is required");
+  const token = requireToken();
+  return apiFetch(`/api/orgs/${encodeURIComponent(orgId)}`, {
+    method: "PATCH",
+    body: payload,
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+/**
+ * ADMIN DELETE
  * DELETE /api/orgs/:orgId
  */
-export async function deleteOrg(orgId) {
-  const token = getIdToken();
-  if (!token) {
-    const err = new Error("Missing id_token. Please log in again.");
-    err.status = 401;
-    throw err;
-  }
-
+async function remove(orgId) {
+  if (!orgId) throw new Error("orgId is required");
+  const token = requireToken();
   return apiFetch(`/api/orgs/${encodeURIComponent(orgId)}`, {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+export default { search, getById, create, patch, remove };
+
+export { search as searchOrgs, getById as getOrgById, create as createOrg, patch as patchOrg, remove as deleteOrg };
