@@ -19,6 +19,7 @@ import SalesRegionDetails from "./pages/SalesRegionDetails";
 import CountryDetails from "./pages/CountryDetails";
 import Infrastructure from "./pages/Infrastructure";
 import InfrastructureDetails from "./pages/InfrastructureDetails";
+import ModifyInfrastructure from "./pages/ModifyInfrastructure";
 
 import OrgInsights from "./pages/OrgInsights";
 import InfraInsights from "./pages/InfraInsights";
@@ -156,6 +157,7 @@ export default function App() {
           <Route path="/participants/organizations/content-types" element={<ContentTypes />} />
           <Route path="/participants/organizations/services" element={<Services />} />
           <Route path="/admin/modify-organizations" element={<ModifyOrganizations />} />
+          <Route path="/admin/modify-infra" element={<ModifyInfrastructure />} />
 
           <Route path="/participants/organizations/functional-types/visualize" element={<FunctionalTypesVisualize />} />
           <Route path="/participants/organizations/content-types/visualize" element={<ContentTypesVisualize />} />
@@ -191,6 +193,7 @@ export default function App() {
     </HashRouter>
   );
 }
+
 
 
 
