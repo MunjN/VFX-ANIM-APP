@@ -586,7 +586,6 @@ export default function ModifyInfrastructure() {
         <div style={{ display: "grid", gap: 6 }}>
           <div style={{ fontSize: 20, fontWeight: 1100, color: BRAND.purple }}>Modify Infrastructure</div>
           <div style={{ fontWeight: 900, opacity: 0.75 }}>
-            Admin-only create/edit/delete. Search uses <code style={{ fontWeight: 900 }}>/api/infra?q=</code>.
           </div>
         </div>
 
